@@ -1,6 +1,32 @@
+using DbUp;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Retrieve the connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Ensure the database exists
+EnsureDatabase.For.SqlDatabase(connectionString);
+
+// Set up the upgrader
+var upgrader = DeployChanges.To
+    .SqlDatabase(connectionString, null)
+    .WithScriptsEmbeddedInAssembly(System.Reflection.Assembly.GetExecutingAssembly())
+    .WithTransaction()
+    .LogToConsole()
+    .Build();
+
+// Perform database upgrade if needed
+if (upgrader.IsUpgradeRequired()) {
+    var result = upgrader.PerformUpgrade();
+
+    if (!result.Successful) {
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.WriteLine(result.Error);
+        Console.ResetColor();
+        return;
+    }
+}
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -13,8 +39,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }

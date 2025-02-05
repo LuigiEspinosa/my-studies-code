@@ -1,4 +1,5 @@
 using DbUp;
+using QandA.Server.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,8 @@ if (upgrader.IsUpgradeRequired()) {
 }
 
 builder.Services.AddControllers();
+builder.Services.AddScoped<IDataRepository, DataRepository>();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

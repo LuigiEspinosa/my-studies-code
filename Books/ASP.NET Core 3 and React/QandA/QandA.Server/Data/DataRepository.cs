@@ -77,29 +77,28 @@ namespace QandA.Server.Data {
         }
 
         public bool QuestionExists(int questionId) {
-            using (var connection = new SqlConnection(_connectionString)) {
-                connection.Open();
-                return connection.QueryFirst<bool>(
-                    @"EXEC dbo.Question_Exist @QuestionId = @QuestionId",
-                    new { QuestionId = questionId }
-                );
-            }
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            return connection.QueryFirst<bool>(
+                @"EXEC dbo.Question_Exists @QuestionId = @QuestionId",
+                new { QuestionId = questionId }
+            );
         }
 
-        public QuestionGetSingleResponse PostQuestion(QuestionPostRequest question) {
-            using (var connection = new SqlConnection(_connectionString)) {
-                connection.Open();
+        public QuestionGetSingleResponse PostQuestion(QuestionPostFullRequest question) {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
 
-                var questionId = connection.QueryFirst<int>(
-                  @"EXEC dbo.Question_Post 
+            var questionId = connection.QueryFirst<int>(
+              @"EXEC dbo.Question_Post 
                     @Title = @Title, @Content = @Content, 
                     @UserId = @UserId, @UserName = @UserName, 
                     @Created = @Created",
-                  question
-                );
+              question
+            );
 
-                return GetQuestion(questionId);
-            }
+            return GetQuestion(questionId);
         }
 
         public QuestionGetSingleResponse PutQuestion(int questionId, QuestionPutRequest question) {
@@ -125,17 +124,17 @@ namespace QandA.Server.Data {
             }
         }
 
-        public AnswerGetResponse PostAnswer(AnswerPostRequest answer) {
-            using (var connection = new SqlConnection(_connectionString)) {
-                connection.Open();
-                return connection.QueryFirst<AnswerGetResponse>(
-                  @"EXEC dbo.Answer_Post 
+        public AnswerGetResponse PostAnswer(AnswerPostFullRequest answer) {
+            using var connection = new SqlConnection(_connectionString);
+            connection.Open();
+
+            return connection.QueryFirst<AnswerGetResponse>(
+              @"EXEC dbo.Answer_Post 
                     @QuestionId = @QuestionId, @Content = @Content, 
                     @UserId = @UserId, @UserName = @UserName,
                     @Created = @Created",
-                  answer
-                );
-            }
+              answer
+            );
         }
     }
 }

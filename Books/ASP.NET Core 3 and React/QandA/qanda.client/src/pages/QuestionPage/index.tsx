@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../redux/store/store';
 import { matchPath, useLocation } from 'react-router-dom';
@@ -19,32 +19,104 @@ import styled from '@emotion/styled';
 import { gray3, gray6 } from '../../Styles';
 import { AnswerList } from '../../components/Answers/AnswerList';
 import { Field } from '../../components/Form/Field';
+import {
+  HubConnection,
+  HubConnectionBuilder,
+  HubConnectionState,
+  LogLevel,
+} from '@aspnet/signalr';
+import {
+  mapQuestionFromServer,
+  QuestionData,
+  QuestionDataFromServer,
+} from '../../lib/QuestionsData';
 
 export const QuestionPage = () => {
   const { pathname } = useLocation();
 
-  const dispath = useDispatch<AppDispatch>();
+  const [question, setQuestion] = useState<QuestionData | null>(null);
+  const connectionRef = useRef<HubConnection | null>(null);
+
+  const dispatch = useDispatch<AppDispatch>();
   const { viewing, loading, postedAnswerResult } = useSelector(
     (state: RootState) => state.questions,
   );
 
+  const setUpSignalRConnection = async (questionId: number) => {
+    const connection = new HubConnectionBuilder()
+      .withUrl('https://localhost:7119/questionhub')
+      .configureLogging(LogLevel.Information)
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('Message', (message: string) => {
+      console.log('Message', message);
+    });
+
+    connection.on('ReceiveQuestion', (question: QuestionDataFromServer) => {
+      console.log('ReceiveQuestion', question);
+      setQuestion(mapQuestionFromServer(question));
+    });
+
+    try {
+      await connection.start();
+      console.log('SignalR connection established');
+    } catch (error) {
+      console.error('Error starting SignalR connection:', error);
+    }
+
+    if (connection.state === HubConnectionState.Connected) {
+      connection
+        .invoke('SubscribeQuestion', questionId)
+        .catch((err: Error) => console.error('Subscription error:', err));
+    }
+
+    connectionRef.current = connection;
+    return connection;
+  };
+
+  const cleanUpSignalRConnection = async (questionId: number) => {
+    const connection = connectionRef.current;
+    if (!connection) return;
+
+    if (connection.state === HubConnectionState.Connected) {
+      try {
+        await connection.invoke('UnsubscribeQuestion', questionId);
+      } catch (error) {
+        console.error('Unsubscription error:', error);
+      }
+    }
+
+    connection.off('Message');
+    connection.off('ReceiveQuestion');
+    await connection.stop();
+    console.log('SignalR Connection stopped');
+  };
+
   useEffect(() => {
     const match = matchPath('/questions/:questionId', pathname);
 
-    if (match && match.params['questionId']) {
-      const questionId = Number(match.params['questionId']);
-      dispath(fetchQuestion(questionId));
+    if (match?.params?.questionId) {
+      const questionId = Number(match.params.questionId);
+      dispatch(fetchQuestion(questionId));
+
+      setUpSignalRConnection(questionId);
     }
 
-    return function cleanUp() {
-      clearPostedAnswer();
+    return () => {
+      dispatch(clearPostedAnswer());
+
+      if (match?.params?.questionId) {
+        const questionId = Number(match.params.questionId);
+        cleanUpSignalRConnection(questionId);
+      }
     };
-  }, [pathname, fetchQuestion, clearPostedAnswer]);
+  }, [pathname, dispatch]);
 
   const handleSubmit = (values: Values) => {
-    dispath(
+    dispatch(
       postAnswerThunk({
-        questionId: viewing!.questionId,
+        questionId: question!.questionId,
         content: values.content,
         userName: 'Fred',
         created: new Date(),
@@ -56,24 +128,29 @@ export const QuestionPage = () => {
   if (postedAnswerResult)
     submitResult = { success: postedAnswerResult !== undefined };
 
+  // Update local state when Redux state updates
+  useEffect(() => {
+    setQuestion(viewing);
+  }, [viewing]);
+
   return (
     <Page>
       <Container>
         <Title>
-          {viewing === null ? (loading ? 'Loading...' : '') : viewing?.title}
+          {question === null ? (loading ? 'Loading...' : '') : question?.title}
         </Title>
 
-        {viewing !== null && (
+        {question !== null && (
           <Fragment>
-            <Content>{viewing?.content}</Content>
+            <Content>{question?.content}</Content>
 
             <UserName>
-              {`Asked by ${viewing.userName} on
-                ${viewing.created.toLocaleDateString()} 
-                ${viewing.created.toLocaleTimeString()}`}
+              {`Asked by ${question.userName} on
+                ${question.created.toLocaleDateString()} 
+                ${question.created.toLocaleTimeString()}`}
             </UserName>
 
-            <AnswerList data={viewing.answers} />
+            <AnswerList data={question.answers} />
 
             <FormContainer>
               <Form

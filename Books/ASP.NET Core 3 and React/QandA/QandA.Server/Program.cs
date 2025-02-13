@@ -1,5 +1,6 @@
 using DbUp;
 using QandA.Server.Data;
+using QandA.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,11 +33,25 @@ if (upgrader.IsUpgradeRequired()) {
 builder.Services.AddControllers();
 builder.Services.AddScoped<IDataRepository, DataRepository>();
 
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options => {
+    options.AddPolicy("CorsPolicy", builder => {
+        builder
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials()
+            .SetIsOriginAllowed(origin => true); // Allow all origins
+    });
+});
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("CorsPolicy");
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -52,6 +67,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<QuestionsHub>("/questionhub");
 
 app.MapFallbackToFile("/index.html");
 

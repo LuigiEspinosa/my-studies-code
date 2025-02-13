@@ -1,15 +1,16 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Identity.Client;
+﻿using Microsoft.AspNetCore.Mvc;
 using QandA.Server.Data;
 using QandA.Server.Data.Models;
+using Microsoft.AspNetCore.SignalR;
+using QandA.Server.Hubs;
 
 namespace QandA.Server.Controllers {
     [Route("api/[controller]")]
     [ApiController]
 
-    public class QuestionsController(IDataRepository dataRepository) : ControllerBase {
+    public class QuestionsController(IDataRepository dataRepository, IHubContext<QuestionsHub> questionHubContext) : ControllerBase {
         private readonly IDataRepository _dataRepository = dataRepository;
+        private readonly IHubContext<QuestionsHub> _questionHubContext = questionHubContext;
 
         // GET
         [HttpGet]
@@ -34,7 +35,7 @@ namespace QandA.Server.Controllers {
                 return NotFound();
             }
 
-            return question;
+            return Ok(question);
         }
 
         // POST
@@ -75,6 +76,11 @@ namespace QandA.Server.Controllers {
                 UserName = "bob.test@test.com",
                 Created = DateTime.UtcNow
             });
+
+            _questionHubContext.Clients.Group(
+                $"Question-{answerPostRequest.QuestionId.Value}")
+                    .SendAsync("ReceiveQuestion", _dataRepository.GetQuestion(
+                        answerPostRequest.QuestionId.Value));
 
             return Ok(savedAnswer);
         }

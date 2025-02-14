@@ -49,6 +49,9 @@ builder.Services.AddCors(options => {
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<IQuestionCache, QuestionCache>();
+
 var app = builder.Build();
 
 app.UseCors("CorsPolicy");

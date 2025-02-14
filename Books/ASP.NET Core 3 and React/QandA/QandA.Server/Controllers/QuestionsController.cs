@@ -8,31 +8,46 @@ namespace QandA.Server.Controllers {
     [Route("api/[controller]")]
     [ApiController]
 
-    public class QuestionsController(IDataRepository dataRepository, IHubContext<QuestionsHub> questionHubContext) : ControllerBase {
+    public class QuestionsController(
+        IDataRepository dataRepository, 
+        IHubContext<QuestionsHub> questionHubContext, 
+        IQuestionCache questionCache
+    ) : ControllerBase {
         private readonly IDataRepository _dataRepository = dataRepository;
         private readonly IHubContext<QuestionsHub> _questionHubContext = questionHubContext;
+        private readonly IQuestionCache _cache = questionCache;
 
         // GET
         [HttpGet]
-        public IEnumerable<QuestionGetManyResponse> GetQuestion(string? search) {
+        public async Task<IEnumerable<QuestionGetManyResponse>> GetQuestions(string? search, bool includeAnswers, int page = 1, int pageSize = 20) {
             if (string.IsNullOrEmpty(search)) {
-                return _dataRepository.GetQuestions();
+                if (includeAnswers) {
+                    return await _dataRepository.GetQuestionsWithAnswers();
+                } else {
+                    return await _dataRepository.GetQuestions();
+                }
             } else {
-                return _dataRepository.GetQuestionsBySearch(search);
+                return await _dataRepository.GetQuestionsBySearchWithPaging(search, page, pageSize);
             }
         }
 
         [HttpGet("unanswered")]
-        public IEnumerable<QuestionGetManyResponse> GetUnansweredQuestions() {
-            return _dataRepository.GetUnansweredQuestions();
+        public async Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestions() {
+            return await _dataRepository.GetUnansweredQuestionsAsync();
         }
 
         [HttpGet("{questionId}")]
-        public ActionResult<QuestionGetSingleResponse> GetQuestion(int questionId) {
-            var question = _dataRepository.GetQuestion(questionId);
+        public async Task<ActionResult<QuestionGetSingleResponse>> GetQuestion(int questionId) {
+            var question = _cache.Get(questionId);
 
             if (question == null) {
-                return NotFound();
+                question = await _dataRepository.GetQuestion(questionId);
+
+                if (question == null) {
+                    return NotFound();
+                }
+
+                _cache.Set(question);
             }
 
             return Ok(question);
@@ -40,8 +55,8 @@ namespace QandA.Server.Controllers {
 
         // POST
         [HttpPost]
-        public ActionResult<QuestionGetSingleResponse> PostQuestion(QuestionPostRequest questionPostRequest) {
-            var savedQuestion = _dataRepository.PostQuestion(new QuestionPostFullRequest {
+        public async Task<ActionResult<QuestionGetSingleResponse>> PostQuestion(QuestionPostRequest questionPostRequest) {
+            var savedQuestion = await _dataRepository.PostQuestion(new QuestionPostFullRequest {
                 Title = questionPostRequest.Title,
                 Content = questionPostRequest.Content,
                 UserId = "1",
@@ -55,12 +70,12 @@ namespace QandA.Server.Controllers {
         }
 
         [HttpPost("answer")]
-        public ActionResult<AnswerGetResponse> PostAnswer(AnswerPostRequest answerPostRequest) {
+        public async Task<ActionResult<AnswerGetResponse>> PostAnswer(AnswerPostRequest answerPostRequest) {
             if (!answerPostRequest.QuestionId.HasValue) {
                 return BadRequest("QuestionId is required.");
             }
 
-            var questionExists = _dataRepository.QuestionExists(answerPostRequest.QuestionId.Value);
+            var questionExists = await _dataRepository.QuestionExists(answerPostRequest.QuestionId.Value);
             if (!questionExists) {
                 return NotFound("Question not found.");
             }
@@ -69,7 +84,7 @@ namespace QandA.Server.Controllers {
                 return BadRequest(ModelState);
             }
 
-            var savedAnswer = _dataRepository.PostAnswer(new AnswerPostFullRequest {
+            var savedAnswer = await _dataRepository.PostAnswer(new AnswerPostFullRequest {
                 QuestionId = answerPostRequest.QuestionId.Value,
                 Content = answerPostRequest.Content,
                 UserId = "1",
@@ -77,18 +92,20 @@ namespace QandA.Server.Controllers {
                 Created = DateTime.UtcNow
             });
 
-            _questionHubContext.Clients.Group(
+            await _questionHubContext.Clients.Group(
                 $"Question-{answerPostRequest.QuestionId.Value}")
                     .SendAsync("ReceiveQuestion", _dataRepository.GetQuestion(
                         answerPostRequest.QuestionId.Value));
+
+            _cache.Remove(answerPostRequest.QuestionId.Value);
 
             return Ok(savedAnswer);
         }
 
         // PUT
         [HttpPut("{questionId}")]
-        public ActionResult<QuestionGetSingleResponse> PutQuestion(int questionId, QuestionPutRequest questionPutRequest) {
-            var question = _dataRepository.GetQuestion(questionId);
+        public async Task<ActionResult<QuestionGetSingleResponse>> PutQuestion(int questionId, QuestionPutRequest questionPutRequest) {
+            var question = await _dataRepository.GetQuestion(questionId);
 
             if (question == null) {
                 return NotFound();
@@ -97,20 +114,24 @@ namespace QandA.Server.Controllers {
             questionPutRequest.Title = string.IsNullOrEmpty(questionPutRequest.Title) ? question.Title : questionPutRequest.Title;
             questionPutRequest.Content = string.IsNullOrEmpty(questionPutRequest.Content) ? question.Content : questionPutRequest.Content;
 
-            var savedQuestion = _dataRepository.PutQuestion(questionId, questionPutRequest);
+            var savedQuestion = await _dataRepository.PutQuestion(questionId, questionPutRequest);
+            _cache.Remove(savedQuestion.QuestionId);
+            
             return Ok(savedQuestion);
         }
 
         // DELETE
         [HttpDelete("{questionId}")]
-        public ActionResult DeleteQuestion(int questionId) {
-            var question = _dataRepository.GetQuestion(questionId);
+        public async Task<ActionResult> DeleteQuestion(int questionId) {
+            var question = await _dataRepository.GetQuestion(questionId);
 
             if (question == null) {
                 return NotFound();
             }
 
-            _dataRepository.DeleteQuestion(questionId);
+            await _dataRepository.DeleteQuestion(questionId);
+            _cache.Remove(questionId);
+
             return NoContent();
         }
     }

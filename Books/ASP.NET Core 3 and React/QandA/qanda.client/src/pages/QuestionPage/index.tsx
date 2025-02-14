@@ -99,7 +99,6 @@ export const QuestionPage = () => {
     if (match?.params?.questionId) {
       const questionId = Number(match.params.questionId);
       dispatch(fetchQuestion(questionId));
-
       setUpSignalRConnection(questionId);
     }
 

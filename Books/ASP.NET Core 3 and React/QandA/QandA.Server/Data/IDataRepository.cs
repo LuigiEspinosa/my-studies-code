@@ -2,19 +2,22 @@
 
 namespace QandA.Server.Data {
     public interface IDataRepository {
-        IEnumerable<QuestionGetManyResponse> GetQuestions();
-        IEnumerable<QuestionGetManyResponse> GetQuestionsBySearch(string search);
-        IEnumerable<QuestionGetManyResponse> GetUnansweredQuestions();
+        Task<IEnumerable<QuestionGetManyResponse>> GetQuestions();
+        Task<IEnumerable<QuestionGetManyResponse>> GetQuestionsWithAnswers();
+        Task<IEnumerable<QuestionGetManyResponse>> GetQuestionsBySearch(string search);
+        Task<IEnumerable<QuestionGetManyResponse>> GetQuestionsBySearchWithPaging(string search, int pageNumber, int pageSize);
+        Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestions();
+        Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestionsAsync();
 
-        QuestionGetSingleResponse GetQuestion(int questionId);
-        QuestionGetSingleResponse PostQuestion(QuestionPostFullRequest question);
-        QuestionGetSingleResponse PutQuestion(int questionId, QuestionPutRequest question);
+        Task<QuestionGetSingleResponse> GetQuestion(int questionId);
+        Task<QuestionGetSingleResponse> PostQuestion(QuestionPostFullRequest question);
+        Task<QuestionGetSingleResponse> PutQuestion(int questionId, QuestionPutRequest question);
 
-        bool QuestionExists(int questionId);
+        Task<bool> QuestionExists(int questionId);
 
-        AnswerGetResponse GetAnswer(int answerId);
-        AnswerGetResponse PostAnswer(AnswerPostFullRequest answer);
+        Task<AnswerGetResponse> GetAnswer(int answerId);
+        Task<AnswerGetResponse> PostAnswer(AnswerPostFullRequest answer);
 
-        void DeleteQuestion(int questionId);
+        Task DeleteQuestion(int questionId);
     }
 }

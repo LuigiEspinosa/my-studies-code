@@ -1,6 +1,10 @@
 using DbUp;
 using QandA.Server.Data;
 using QandA.Server.Hubs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
+using QandA.Server.Authorization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +56,24 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<IQuestionCache, QuestionCache>();
 
+builder.Services.AddAuthentication(options => {
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(options => {
+    options.Authority = builder.Configuration["Auth0:Authority"];
+    options.Audience = builder.Configuration["Auth0:Audience"];
+});
+
+builder.Services.AddHttpClient();
+builder.Services.AddAuthorization(options => {
+    options.AddPolicy("MustBeQuestionAuthor", policy => {
+        policy.Requirements.Add(new MustBeQuestionAuthorRequirement());
+    });
+});
+
+builder.Services.AddScoped<IAuthorizationHandler, MustBeQuestionAuthorHandler>();
+builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+
 var app = builder.Build();
 
 app.UseCors("CorsPolicy");
@@ -67,6 +89,7 @@ if (app.Environment.IsDevelopment()) {
 
 app.UseHttpsRedirection();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

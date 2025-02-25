@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from '@emotion/styled';
 import { fontFamily, fontSize, gray1, gray2, gray5 } from '../../Styles';
 import { UserIcon } from '../Icons';
+import { useAuth0 } from '@auth0/auth0-react';
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -23,6 +24,8 @@ export const Header = () => {
     navigate(`/search?criteria=${search}`);
   };
 
+  const { isAuthenticated, isLoading, user } = useAuth0();
+
   return (
     <HeaderContainer>
       <HomeLink to={'/'}>Q & A</HomeLink>
@@ -36,10 +39,20 @@ export const Header = () => {
         />
       </form>
 
-      <SignButton to={'/signin'}>
-        <UserIcon />
-        <span>Sign In</span>
-      </SignButton>
+      {!isLoading && isAuthenticated ? (
+        <div>
+          <span>{user!.name}</span>
+          <SignButton to={'/signout'} state={{ local: true }}>
+            <UserIcon />
+            <span>Sign Out</span>
+          </SignButton>
+        </div>
+      ) : (
+        <SignButton to={'/signin'}>
+          <UserIcon />
+          <span>Sign In</span>
+        </SignButton>
+      )}
     </HeaderContainer>
   );
 };

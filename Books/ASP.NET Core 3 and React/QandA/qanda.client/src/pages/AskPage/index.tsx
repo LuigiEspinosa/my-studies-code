@@ -14,6 +14,7 @@ import {
   Values,
 } from '../../components/Form';
 import { Field } from '../../components/Form/Field';
+import { postQuestion } from '../../lib/QuestionsData';
 
 export const AskPage = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -25,15 +26,18 @@ export const AskPage = () => {
     };
   }, [clearPostedQuestion]);
 
-  const handleSubmit = (values: Values) => {
-    dispatch(
-      postQuestionThunk({
-        title: values.title,
-        content: values.content,
-        userName: 'Fred',
-        created: new Date(),
-      }),
-    );
+  const handleSubmit = async (values: Values) => {
+    const questionData = {
+      title: values.title,
+      content: values.content,
+      userName: 'Fred',
+      created: new Date(),
+    };
+
+    dispatch(postQuestionThunk(questionData));
+    const question = await postQuestion(questionData);
+
+    return { success: question ? true : false };
   };
 
   let submitResult: SubmitResult | undefined;

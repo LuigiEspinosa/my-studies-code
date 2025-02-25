@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../redux/store/store';
@@ -15,9 +15,19 @@ export const SearchPage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { searched } = useSelector((state: RootState) => state.questions);
 
+  const [isMounted, setIsMounted] = useState<boolean>(true);
+
   useEffect(() => {
-    dispatch(searchQuestionsThunk(search));
-  }, [search, searchQuestionsThunk]);
+    setIsMounted(true);
+
+    if (search && isMounted) {
+      dispatch(searchQuestionsThunk(search));
+    }
+
+    return () => {
+      setIsMounted(false);
+    };
+  }, [search, dispatch, isMounted]);
 
   return (
     <Page title="Searcg Results">

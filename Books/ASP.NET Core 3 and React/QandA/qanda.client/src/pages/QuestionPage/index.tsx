@@ -30,11 +30,13 @@ import {
   QuestionData,
   QuestionDataFromServer,
 } from '../../lib/QuestionsData';
+import { useAuth0 } from '@auth0/auth0-react';
 
 export const QuestionPage = () => {
   const { pathname } = useLocation();
 
   const [question, setQuestion] = useState<QuestionData | null>(null);
+  const [isMounted, setIsMounted] = useState<boolean>(true);
   const connectionRef = useRef<HubConnection | null>(null);
 
   const dispatch = useDispatch<AppDispatch>();
@@ -94,15 +96,17 @@ export const QuestionPage = () => {
   };
 
   useEffect(() => {
+    setIsMounted(true);
     const match = matchPath('/questions/:questionId', pathname);
 
-    if (match?.params?.questionId) {
+    if (match?.params?.questionId && isMounted) {
       const questionId = Number(match.params.questionId);
       dispatch(fetchQuestion(questionId));
       setUpSignalRConnection(questionId);
     }
 
     return () => {
+      setIsMounted(false);
       dispatch(clearPostedAnswer());
 
       if (match?.params?.questionId) {
@@ -110,7 +114,7 @@ export const QuestionPage = () => {
         cleanUpSignalRConnection(questionId);
       }
     };
-  }, [pathname, dispatch]);
+  }, [pathname, dispatch, isMounted]);
 
   const handleSubmit = (values: Values) => {
     dispatch(
@@ -132,6 +136,8 @@ export const QuestionPage = () => {
     setQuestion(viewing);
   }, [viewing]);
 
+  const { isAuthenticated } = useAuth0();
+
   return (
     <Page>
       <Container>
@@ -151,23 +157,25 @@ export const QuestionPage = () => {
 
             <AnswerList data={question.answers} />
 
-            <FormContainer>
-              <Form
-                submitCaption="Submit Your Answer"
-                validationRules={{
-                  content: [
-                    { validator: required },
-                    { validator: minLength, arg: 50 },
-                  ],
-                }}
-                onSubmit={handleSubmit}
-                submitResult={submitResult}
-                failureMessage="There was a problem with your answer"
-                successMessage="Your answer was successfully submitted"
-              >
-                <Field name="content" label="Your Answer" type="TextArea" />
-              </Form>
-            </FormContainer>
+            {isAuthenticated && (
+              <FormContainer>
+                <Form
+                  submitCaption="Submit Your Answer"
+                  validationRules={{
+                    content: [
+                      { validator: required },
+                      { validator: minLength, arg: 50 },
+                    ],
+                  }}
+                  onSubmit={handleSubmit}
+                  submitResult={submitResult}
+                  failureMessage="There was a problem with your answer"
+                  successMessage="Your answer was successfully submitted"
+                >
+                  <Field name="content" label="Your Answer" type="TextArea" />
+                </Form>
+              </FormContainer>
+            )}
           </Fragment>
         )}
       </Container>

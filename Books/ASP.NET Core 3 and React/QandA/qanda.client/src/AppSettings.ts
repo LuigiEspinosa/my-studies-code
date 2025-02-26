@@ -6,8 +6,8 @@ export const authSettings = {
   domain: import.meta.env.VITE_AUTH_DOMAIN || '',
   clientId: import.meta.env.VITE_AUTH_CLIENT || '',
   authorizationParams: {
-    audience: 'https://qanda',
+    audience: import.meta.env.VITE_AUTH0_AUDIENCE || '',
     redirect_uri: window.location.origin + '/signin-callback',
-    scope: 'OpenId profile QandAAPI email',
+    scope: import.meta.env.VITE_AUTH0_SCOPE || '',
   },
 };

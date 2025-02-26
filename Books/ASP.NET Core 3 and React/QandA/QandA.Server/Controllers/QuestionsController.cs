@@ -72,7 +72,7 @@ namespace QandA.Server.Controllers {
 
         private async Task<string> GetUserName() {
             var request = new HttpRequestMessage(HttpMethod.Get, _auth0UserInfo);
-            request.Headers.Add("Authorization", Request.Headers["Authorization"].First());
+            request.Headers.Add("Authorization", Request.Headers.Authorization.First());
 
             var client = _clientFactory.CreateClient();
             var response = await client.SendAsync(request);

@@ -2,9 +2,9 @@ using DbUp;
 using QandA.Server.Data;
 using QandA.Server.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using QandA.Server.Authorization;
+using Microsoft.Azure.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,14 +40,19 @@ builder.Services.AddScoped<IDataRepository, DataRepository>();
 builder.Services.AddSignalR();
 
 builder.Services.AddCors(options => {
-    options.AddPolicy("CorsPolicy", builder => {
-        builder
+    options.AddPolicy("CorsPolicy", build => {
+        build
             .AllowAnyMethod()
             .AllowAnyHeader()
-            .AllowCredentials()
-            .SetIsOriginAllowed(origin => true); // Allow all origins
+            .AllowCredentials();
+
+        var frontendOrigin = builder.Configuration["Frontend"];
+        if (!string.IsNullOrEmpty(frontendOrigin)) {
+            build.WithOrigins(frontendOrigin);
+        }
     });
 });
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -65,11 +70,10 @@ builder.Services.AddAuthentication(options => {
 });
 
 builder.Services.AddHttpClient();
-builder.Services.AddAuthorization(options => {
-    options.AddPolicy("MustBeQuestionAuthor", policy => {
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("MustBeQuestionAuthor", policy => {
         policy.Requirements.Add(new MustBeQuestionAuthorRequirement());
     });
-});
 
 builder.Services.AddScoped<IAuthorizationHandler, MustBeQuestionAuthorHandler>();
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();

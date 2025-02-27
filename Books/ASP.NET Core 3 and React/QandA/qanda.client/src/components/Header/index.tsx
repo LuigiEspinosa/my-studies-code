@@ -28,7 +28,10 @@ export const Header = () => {
 
   return (
     <HeaderContainer>
-      <HomeLink to={'/'}>Q & A</HomeLink>
+      <div>
+        <HomeLink to={'/'}>Q & A</HomeLink>
+        <DevTag>{process.env.REACT_APP_ENV || 'Development'}</DevTag>
+      </div>
 
       <form onSubmit={handleSearchSubmit}>
         <StyledInput
@@ -76,6 +79,12 @@ const HomeLink = styled(Link)`
   font-weight: bold;
   color: ${gray1};
   text-decoration: none;
+`;
+
+const DevTag = styled.span`
+  margin-left: 10px;
+  font-size: 16px;
+  color: ${gray2};
 `;
 
 const StyledInput = styled.input`

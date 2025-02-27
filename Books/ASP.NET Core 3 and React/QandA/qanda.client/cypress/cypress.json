@@ -1,0 +1,5 @@
+{
+  "baseUrl": "https://qanda-frontend.azurewebsites.net",
+  "integrationFolder": "integration",
+  "supportFile": "support/index.js"
+}

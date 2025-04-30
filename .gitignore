@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/node,linux,macos,react,python,windows,aspnetcore,visualstudio,circuitpython,pythonvanilla,visualstudiocode,exercism,executable
-# Edit at https://www.toptal.com/developers/gitignore?templates=node,linux,macos,react,python,windows,aspnetcore,visualstudio,circuitpython,pythonvanilla,visualstudiocode,exercism,executable
+# Created by https://www.toptal.com/developers/gitignore/api/vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git
+# Edit at https://www.toptal.com/developers/gitignore?templates=vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git
 
 ### ASPNETCore ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -295,6 +295,21 @@ boot_out.txt
 
 # Ignore .exercism folder which contain sensitive data
 .exercism
+
+### Git ###
+# Created by git for backups. To disable backups in Git:
+# $ git config --global mergetool.keepBackup false
+*.orig
+
+# Created by git when using merge tools for conflicts
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*_BACKUP_*.txt
+*_BASE_*.txt
+*_LOCAL_*.txt
+*_REMOTE_*.txt
 
 ### Linux ###
 
@@ -705,6 +720,23 @@ sketch
 .history
 .ionide
 
+### Vue ###
+# gitignore template for Vue.js projects
+#
+# Recommended template: Node.gitignore
+
+# TODO: where does this rule come from?
+docs/_book
+
+# TODO: where does this rule come from?
+test/
+
+### Vuejs ###
+# Recommended template: Node.gitignore
+
+npm-debug.log
+yarn-error.log
+
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
@@ -975,4 +1007,4 @@ FodyWeavers.xsd
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
-# End of https://www.toptal.com/developers/gitignore/api/node,linux,macos,react,python,windows,aspnetcore,visualstudio,circuitpython,pythonvanilla,visualstudiocode,exercism,executable
+# End of https://www.toptal.com/developers/gitignore/api/vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git

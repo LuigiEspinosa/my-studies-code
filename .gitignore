@@ -1,5 +1,37 @@
-# Created by https://www.toptal.com/developers/gitignore/api/vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git
-# Edit at https://www.toptal.com/developers/gitignore?templates=vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git
+# Created by https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase
+# Edit at https://www.toptal.com/developers/gitignore?templates=git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase
+
+### Angular ###
+## Angular ##
+# compiled output
+dist/
+tmp/
+app/**/*.js
+app/**/*.js.map
+
+# dependencies
+node_modules/
+bower_components/
+
+# IDEs and editors
+.idea/
+
+# misc
+.sass-cache/
+connect.lock/
+coverage/
+libpeerconnection.log/
+npm-debug.log
+testem.log
+typings/
+.angular/
+
+# e2e
+e2e/*.js
+e2e/*.map
+
+# System Files
+.DS_Store/
 
 ### ASPNETCore ###
 ## Ignore Visual Studio temporary files, build results, and
@@ -128,7 +160,6 @@ nCrunchTemp_*
 AutoTest.Net/
 
 # Web workbench (sass)
-.sass-cache/
 
 # Installshield output folder
 [Ee]xpress/
@@ -200,7 +231,6 @@ ClientBin/
 *.jfm
 *.pfx
 *.publishsettings
-node_modules/
 orleans.codegen.cs
 
 # Since there are multiple workflows, uncomment next line to ignore bower_components
@@ -258,7 +288,6 @@ paket-files/
 .fake/
 
 # JetBrains Rider
-.idea/
 *.sln.iml
 
 # CodeRush
@@ -295,6 +324,15 @@ boot_out.txt
 
 # Ignore .exercism folder which contain sensitive data
 .exercism
+
+### Firebase ###
+.idea
+**/node_modules/*
+**/.firebaserc
+
+### Firebase Patch ###
+.runtimeconfig.json
+.firebase/
 
 ### Git ###
 # Created by git for backups. To disable backups in Git:
@@ -506,7 +544,6 @@ dist
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -734,7 +771,6 @@ test/
 ### Vuejs ###
 # Recommended template: Node.gitignore
 
-npm-debug.log
 yarn-error.log
 
 ### Windows ###
@@ -1007,4 +1043,4 @@ FodyWeavers.xsd
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
-# End of https://www.toptal.com/developers/gitignore/api/vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,git
+# End of https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase

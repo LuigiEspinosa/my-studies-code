@@ -1,5 +1,5 @@
-# Created by https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase
-# Edit at https://www.toptal.com/developers/gitignore?templates=git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase
+# Created by https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,angular,windows,exercism,firebase,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode
+# Edit at https://www.toptal.com/developers/gitignore?templates=git,vue,node,linux,macos,react,vuejs,python,angular,windows,exercism,firebase,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode
 
 ### Angular ###
 ## Angular ##
@@ -1043,4 +1043,4 @@ FodyWeavers.xsd
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio
 
-# End of https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,windows,exercism,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode,angular,firebase
+# End of https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,angular,windows,exercism,firebase,aspnetcore,executable,visualstudio,circuitpython,pythonvanilla,visualstudiocode

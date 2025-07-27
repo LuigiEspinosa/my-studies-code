@@ -1,5 +1,5 @@
 import Enemy from "./Enemy";
-import initAnims from "./anims/birdmanAnims";
+import initAnims from "./anims/birdAnims";
 
 class Birdman extends Enemy {
 	constructor(scene, x, y) {

@@ -41,6 +41,9 @@ module.exports = {
 		port: 8080,
 	},
 	plugins: [
+		new webpack.ProvidePlugin({
+			process: "process/browser",
+		}),
 		new webpack.DefinePlugin({
 			CANVAS_RENDERER: JSON.stringify(true),
 			WEBGL_RENDERER: JSON.stringify(true),
@@ -51,14 +54,14 @@ module.exports = {
 		new CopyPlugin({
 			patterns: [
 				{
-					from: path.resolve(__dirname, "assets"),
-					to: path.resolve(__dirname, "build/assets"),
+					from: path.resolve(__dirname, "assets/**/*"),
+					to: path.resolve(__dirname, "build"),
+				},
+				{
+					from: path.resolve(__dirname, "fbapp-config.json"),
+					to: path.resolve(__dirname, "build"),
 				},
 			],
 		}),
-		new webpack.ProvidePlugin({
-			process: "process/browser",
-		}),
 	],
 };
-

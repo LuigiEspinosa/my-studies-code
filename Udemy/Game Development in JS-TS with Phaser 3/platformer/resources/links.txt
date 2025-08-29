@@ -1,0 +1,8 @@
+// To setup App:
+// https://developers.facebook.com/apps/async/create/platform-setup/dialog/
+
+// App setup example:
+// https://developers.facebook.com/docs/games/instant-games/getting-started/quickstart#app-setup
+
+// To test App:
+// https://www.facebook.com/embed/instantgames/YOUR_GAME_ID/player?game_url=http://localhost:8080

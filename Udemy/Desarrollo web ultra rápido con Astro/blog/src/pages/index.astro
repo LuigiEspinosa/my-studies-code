@@ -1,0 +1,18 @@
+---
+import Layout from "@layouts/Layout.astro";
+import Title from "@components/Title.astro";
+import BlogPreview from "@components/BlogPreview.astro";
+import type { Post } from "types/blog.types";
+
+let allPost: Post[] = Object.values(import.meta.glob("./posts/**/*.md", { eager: true }));
+
+allPost = allPost.sort(
+	(date1, date2) =>
+		new Date(date2.frontmatter.date).valueOf() - new Date(date1.frontmatter.date).valueOf()
+);
+---
+
+<Layout title="Welcome to My Blog">
+	<Title title="My Programming" title2="Blog" subtitle="Awesome blog with Astro" />
+	{allPost.map((p) => <BlogPreview post={p} />)}
+</Layout>

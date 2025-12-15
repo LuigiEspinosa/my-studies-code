@@ -1,0 +1,51 @@
+---
+const MainCard = "div";
+const Container = "div";
+
+export interface Props {
+	name: string;
+	avatar: boolean;
+	occupation?: string;
+}
+
+const { name, avatar, occupation = "Unknown" } = Astro.props;
+---
+
+<script>
+	const button = document.getElementById("btn");
+	button?.addEventListener("click", () => alert("Hello"));
+</script>
+
+<MainCard class="card">
+	<img src={avatar ? "images/avatar1.png" : "images/avatar2.png"} alt="image" style="width:100%" />
+
+	<Container class="container">
+		<h4>{name}</h4>
+		<p>{occupation}</p>
+
+		<slot name="description">
+			<p>Default Content</p>
+		</slot>
+	</Container>
+
+	<button id="btn">Click</button>
+</MainCard>
+
+<style>
+	.card {
+		box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+		transition: 0.3s;
+		margin-left: 50px;
+		width: 15%;
+		margin-bottom: 15px;
+		padding: 20px;
+	}
+
+	.card:hover {
+		box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2);
+	}
+
+	.container {
+		padding: 2px, 16px;
+	}
+</style>

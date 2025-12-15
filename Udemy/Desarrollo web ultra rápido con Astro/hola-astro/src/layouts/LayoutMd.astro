@@ -1,0 +1,30 @@
+---
+const { frontmatter } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<title>{frontmatter.title}</title>
+	</head>
+
+	<body>
+		<h1>{frontmatter.title}</h1>
+		<h2>{frontmatter.date}</h2>
+
+		<div class="container">
+			<slot />
+		</div>
+	</body>
+</html>
+
+<style>
+	.container {
+		padding: 50px;
+		width: 70%;
+		text-align: justify;
+	}
+</style>

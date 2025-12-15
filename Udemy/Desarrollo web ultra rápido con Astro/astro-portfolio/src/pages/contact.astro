@@ -1,0 +1,31 @@
+---
+import Menu from "../components/Menu.astro";
+import TitlePage from "../components/TitlePage.astro";
+import Button from "../components/Button.astro";
+
+const styleInput =
+  "border border-purple-300 px-4 py-2 rounded-md hover:border-pink-400";
+const styleTextarea =
+  "border border-purple-300 px-4 py-2 rounded-md hover:border-pink-400 md:col-span-3";
+---
+
+<Menu />
+<section class="pt-20 pb-36 px-8 bg-gray-200">
+  <div class="max-w-6xl mx-auto">
+    <TitlePage title="Contact" subtitle="Get in touch with me" />
+  </div>
+  <div class="mt-16 relative max-w-4xl mx-auto">
+    <div class="relative z-20 bg-white rounded-md p-12 shadow-lg">
+      <form action="">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 gap-10">
+          <input type="text" placeholder="Name" class={styleInput} />
+          <input type="email" placeholder="Email" class={styleInput} />
+          <input type="text" placeholder="Subject" class={styleInput} />
+          <textarea rows="5" placeholder="Message" class={styleTextarea}
+          ></textarea>
+        </div>
+        <Button title="Send message" />
+      </form>
+    </div>
+  </div>
+</section>

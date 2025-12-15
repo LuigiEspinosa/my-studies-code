@@ -1,0 +1,20 @@
+---
+export interface props {
+  image: string;
+  title: string;
+  desc: string;
+}
+
+const { image, title, desc } = Astro.props;
+---
+
+<div class="bg-white rounded-md shadow-md">
+  <img src={image} alt="imagen" class="object-cover w-full h-80" />
+  <div class="p-8">
+    <h3 class="font-bold text-2xl">{title}</h3>
+    <p class="pt-3">
+      {desc}
+    </p>
+    <slot />
+  </div>
+</div>

@@ -1,0 +1,18 @@
+---
+// import type { GetStaticPaths } from "astro";
+import Layout from "@layouts/Layout.astro";
+
+// export const getStaticPaths = (() => {
+// 	return [
+// 		{
+// 			params: { id: "123" },
+// 		},
+// 	];
+// }) satisfies GetStaticPaths;
+
+const { id } = Astro.params;
+---
+
+<Layout>
+	<h2>The id is: {id}</h2>
+</Layout>

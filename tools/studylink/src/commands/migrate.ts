@@ -29,6 +29,7 @@ import {
     CODE_TREE_URL_BASE,
     encodeRepoPath,
     INDEX_DATES,
+    NON_CANONICAL_URLS,
     type RepoConfig,
 } from '../config.ts';
 import { entryFor, parseFrontmatter, splitLines, type Frontmatter } from '../frontmatter.ts';
@@ -70,6 +71,34 @@ export const MIGRATION_STATUS = 'done';
 
 /** How far into a note body a source link is still considered its own. */
 export const URL_HEAD_LINES = 5;
+
+/**
+ * True when a note stands for a whole study resource rather than a unit inside
+ * one.
+ *
+ * `url` is the canonical URL of the course, room, or book, so only the note
+ * that *is* the resource has one to carry. A resource README qualifies. So does
+ * a leaf note that is itself the resource: the 5 Midu.dev workshops are
+ * single-page courses filed straight under the platform folder instead of being
+ * given a folder of their own, and their two-segment slug is exactly that fact
+ * written down. A unit inside a resource never qualifies, whatever it links.
+ *
+ * That distinction is what the earlier rule missed. Lifting any single link
+ * from a note's first 5 lines was right 5 times in 28 across the live corpus:
+ * it read the per-day YouTube walkthrough as the course URL for 22 Advent of
+ * Cyber day notes, and an unrelated external reference for 1 Veeva lesson.
+ * None of those is the room or the certification, because a unit does not have
+ * one to give.
+ */
+export function isResourceLevel(kind: Kind, slug: string | null): boolean {
+    if (kind === 'index') {
+        return true;
+    }
+    // A resource-level leaf note is `<source>/<course>`; a unit adds a third
+    // segment. Reading the slug rather than the path keeps this a statement
+    // about the tier a note occupies rather than about Midu.dev.
+    return kind === 'note' && slug !== null && slug.split('/').length === 2;
+}
 
 const URL_IN_TEXT = /https?:\/\/[^\s<>()[\]"']+/g;
 
@@ -351,10 +380,8 @@ function derive(input: DeriveInput): Derived {
     return {
         kind,
         source,
-        // Only a unit of study carries the link it was written from. No index
-        // README in the corpus has one, and the single candidate is a privacy
-        // policy rather than a course page.
-        url: kind === 'note' ? liftUrl(input.before) : null,
+        // Only the note standing for the resource carries the resource's URL.
+        url: isResourceLevel(kind, slug) ? liftUrl(input.before) : null,
         slug,
         started,
         finished,
@@ -471,7 +498,7 @@ function linkedNotes(input: DeriveInput): string[] {
 }
 
 /**
- * The single source link a note opens with, or null.
+ * The single source link a resource-level note opens with, or null.
  *
  * Exactly one, because two links in a head are two candidates and the tool has
  * no way to tell which is the source. The line itself stays where the author
@@ -485,6 +512,12 @@ function liftUrl(text: string): string | null {
     const found = new Set(
         (head.match(URL_IN_TEXT) ?? []).map((url) => url.replace(/[.,;:]+$/, ''))
     );
+    // Filtered before the count, not after, because a link already known not to
+    // be a resource URL was never a candidate. A head pairing one with a real
+    // course link should yield that link rather than nothing.
+    for (const url of NON_CANONICAL_URLS) {
+        found.delete(url);
+    }
     return found.size === 1 ? ([...found][0] ?? null) : null;
 }
 

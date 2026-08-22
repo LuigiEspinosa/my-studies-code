@@ -83,6 +83,22 @@ export const BULK_COMMITS: readonly BulkCommit[] = [
     { sha: 'acfe6cc', subject: 'chore(migration): Midu.dev Lint', noteFiles: 7 },
 ];
 
+/**
+ * Links a resource-level note opens with that are not the resource's own URL.
+ *
+ * `url` is defined as the canonical URL of the course, room, or book, so a
+ * site-wide legal page does not qualify however prominently a note carries it.
+ * `Veeva Learning/Start Here - Multichannel Certification/README.md` is five
+ * lines of terms and conditions and the privacy policy is the only link in it;
+ * lifting it would put a value in the field that answers a different question.
+ *
+ * Named explicitly rather than pattern-matched, for the same reason
+ * `BULK_COMMITS` is: a rule shaped to reject this one URL would also reject
+ * legitimate ones the corpus has not acquired yet. An entry earns its place by
+ * being read, not by matching a shape.
+ */
+export const NON_CANONICAL_URLS: readonly string[] = ['https://www.veeva.com/privacy/'];
+
 export type DeclaredDates = {
     readonly started: string;
     readonly finished: string;

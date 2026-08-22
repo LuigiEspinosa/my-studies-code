@@ -27,6 +27,7 @@ import {
     foldToSlug,
     formatGaps,
     formatMigration,
+    isResourceLevel,
     kindFor,
     planMigration,
     slugFor,
@@ -510,9 +511,11 @@ describe('dating an index', () => {
         assert.equal(result.gaps.length, 0, formatGaps(result));
     });
 
-    it('never lifts a url onto an index, even one whose head carries a link', () => {
-        // The single candidate in the corpus is a privacy policy, not a course
-        // page, which is why the lift is restricted to a unit of study.
+    it('leaves the one index whose head link is a privacy policy without a url', () => {
+        // The index tier is eligible for a lift, so this is not the tier being
+        // asserted: it is that `NON_CANONICAL_URLS` names this link. A privacy
+        // policy answers a different question than "the canonical URL of the
+        // course, room, or book", however prominently the note carries it.
         const block = blockFor(
             plan(veevaVault(), VEEVA_COMMITS),
             'Start Here - Multichannel Certification/README.md'
@@ -577,6 +580,111 @@ describe('lifting a source link', () => {
             change?.after.endsWith(change.before ?? ''),
             'the original file is intact beneath the block'
         );
+    });
+
+    it('skips a url the contract has named as not a resource URL', () => {
+        assert.equal(field(head('URL: <https://www.veeva.com/privacy/>'), 'url'), null);
+    });
+
+    it('still finds the resource URL in a head that also carries a named one', () => {
+        // Filtering runs before the one-candidate count, so a legal link sitting
+        // beside the course link does not read as ambiguity and cost the note a
+        // value it plainly carries.
+        assert.equal(
+            field(
+                head('[Course](https://midu.dev/curso/x) - <https://www.veeva.com/privacy/>'),
+                'url'
+            ),
+            'https://midu.dev/curso/x'
+        );
+    });
+});
+
+// --------------------------------------------------------------------------
+// Which tier may carry a url at all.
+// --------------------------------------------------------------------------
+
+describe('resource level', () => {
+    it('counts an index, whose whole subject is one resource', () => {
+        assert.equal(isResourceLevel('index', 'veeva/engage-technical-certification-v5'), true);
+    });
+
+    it('counts a leaf note that is itself the resource', () => {
+        // The 5 Midu.dev workshops are single-page courses filed straight under
+        // the platform folder, which is what the two-segment slug records.
+        assert.equal(isResourceLevel('note', 'midudev/figma-para-devs'), true);
+    });
+
+    it('excludes a unit inside a resource', () => {
+        assert.equal(isResourceLevel('note', 'tryhackme/advent-of-cyber-2024/day-11'), false);
+    });
+
+    it('excludes a platform file, which is navigation above the resource tier', () => {
+        assert.equal(isResourceLevel('platform', null), false);
+    });
+
+    it('excludes a note whose slug could not be derived', () => {
+        assert.equal(isResourceLevel('note', null), false);
+    });
+});
+
+describe('lifting a url by tier', () => {
+    /** One resource with a unit under it, each opening with its own link. */
+    function tiered(): RepoConfig {
+        return vault({
+            'my-studies/README.md': note('My Studies'),
+            'my-studies/TryHackMe/README.md': note('TryHackMe'),
+            'my-studies/TryHackMe/Advent of Cyber 2024/README.md': note(
+                'Advent of Cyber 2024',
+                '[The room](https://tryhackme.com/room/adventofcyber2024)'
+            ),
+            'my-studies/TryHackMe/Advent of Cyber 2024/Day 11.md': note(
+                'Day 11',
+                '[Walkthrough](https://www.youtube.com/watch?v=svxqeFWqXQc)'
+            ),
+            'my-studies/Midu.dev/README.md': note('Midu.dev'),
+            'my-studies/Midu.dev/Figma para Devs.md': note(
+                'Figma para Devs',
+                '[Figma para Devs](https://midu.dev/curso/figma-para-devs)'
+            ),
+        });
+    }
+
+    const COMMITS: readonly Commit[] = [
+        commit('1111111', '2024-12-11', 'TryHackMe/Advent of Cyber 2024/Day 11.md'),
+        commit('2222222', '2025-05-01', 'Midu.dev/Figma para Devs.md'),
+    ];
+
+    it('takes the link an index opens with, because that is the resource URL', () => {
+        const block = blockFor(plan(tiered(), COMMITS), 'Advent of Cyber 2024/README.md');
+
+        assert.equal(field(block, 'url'), 'https://tryhackme.com/room/adventofcyber2024');
+    });
+
+    it('takes the link a single-note workshop opens with', () => {
+        const block = blockFor(plan(tiered(), COMMITS), 'Midu.dev/Figma para Devs.md');
+
+        assert.equal(field(block, 'url'), 'https://midu.dev/curso/figma-para-devs');
+    });
+
+    it('takes nothing from a unit inside a resource, however obvious its link', () => {
+        // The correction this rule exists for. A per-day walkthrough video is
+        // the single unambiguous link in 22 Advent of Cyber day notes, and it is
+        // not the room's URL, because a day of a room does not have one.
+        const block = blockFor(plan(tiered(), COMMITS), 'Advent of Cyber 2024/Day 11.md');
+
+        assert.equal(field(block, 'url'), null);
+    });
+
+    it('leaves the walkthrough line untouched in the body it was dropped from', () => {
+        // Refusing to lift a link is not a licence to remove it. The note still
+        // reads the way the author wrote it; only the frontmatter declines it.
+        const config = tiered();
+        const result = plan(config, COMMITS);
+        const change = result.changes.find((entry) => entry.file.endsWith('Day 11.md'));
+
+        assert.ok(change?.after.includes('https://www.youtube.com/watch?v=svxqeFWqXQc'));
+        assert.ok(change?.after.endsWith(change.before ?? ''));
     });
 });
 

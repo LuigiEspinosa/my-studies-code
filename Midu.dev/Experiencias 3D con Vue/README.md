@@ -26,3 +26,11 @@ Este proyecto está licenciado bajo la Licencia MIT - consulta el archivo [LICEN
 - Los materiales utilizados en este curso están licenciados bajo CC0 de [ambientCG](https://ambientcg.com/). Gracias a Lennart Demes por proporcionar estos recursos de forma gratuita para que la comunidad pueda aprender y crear.
 - Los modelos de escritorio utilizados en este curso están licenciados bajo CC0 creados y modelados por [Alvaro Saburido](https://alvarosaburido.dev/).
 - El modelo de Macbook utilizado en este curso está licenciado bajo CC0 creado y modelado por [sriniwasjha](https://blendswap.com/profile/235176) en [Pmndrs Market](https://market.pmnd.rs/model/macbook).
+
+<!-- studylink:begin -->
+
+Study notes for this code:
+
+- [midudev/experiencias-3d-con-vue](https://github.com/LuigiEspinosa/my-studies/blob/main/Midu.dev/Experiencias%203D%20con%20Vue.md)
+
+<!-- studylink:end -->

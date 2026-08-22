@@ -49,3 +49,10 @@ Access your PWA at `http://localhost:8080`. The service worker will only work in
 - Si deseas más recursos sobre Angular, visita mi canal de YouTube [**dominicode**](https://youtube.com/dominicode)
 - Para más información sobre Angular CLI, consulta la [documentación oficial](https://angular.dev/tools/cli)
 
+<!-- studylink:begin -->
+
+Study notes for this code:
+
+- [midudev/pwa-de-deteccion-de-objetos-con-angular-19-y-tensorflow-js](https://github.com/LuigiEspinosa/my-studies/blob/main/Midu.dev/PWA%20de%20Detecci%C3%B3n%20de%20Objetos%20con%20Angular%2019%20y%20TensorFlow.js.md)
+
+<!-- studylink:end -->

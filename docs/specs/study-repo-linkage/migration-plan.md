@@ -77,6 +77,13 @@ This supersedes two earlier descriptions of the same thing, and the history matt
 
 The code-side prune commit `0797c5d` never enters note date derivation and so is not in the list.
 
+### Two open items
+
+Both are recorded rather than resolved, because resolving either changes dates that are now frozen in frontmatter.
+
+- **`05455e8` "fix: Hotfixes" (2025-04-21) is kept as a genuine study commit, unconfirmed.** It is load-bearing: it supplies `finished: 2025-04-21` to `Survey Basics` and `Surveys in CLM`, among the 7 Veeva notes it touches. Its shape argues both ways, at 1,089 deletions against 6 insertions across one certification, which reads more like trimming duplicated content than studying. Reclassifying it means re-deriving dates for those 7 notes, not just editing a list.
+- **The migration's own commits are not excluded.** `d1ad5c9` (frontmatter and managed blocks, 120 note files) and `b69d6ce` (topic tags, 114 note files) are the two largest mechanical commits in the repo's history, and neither is in `BULK_COMMITS`. This is harmless as things stand, because `migrate` is a one-shot that has already run and the dates it derived are frozen in the notes. But re-running `migrate --write` today would derive `finished: 2026-08-22` for every note in the vault, which is exactly the flattening this list exists to prevent. Add both before any re-run.
+
 ### When derivation reaches nothing
 
 Excluding commits can leave a file with no derivable date at all. `INDEX_DATES` in the same config file declares `started` and `finished` for `veeva/start-here-multichannel-certification` as `2024-10-15`, the only entry in the table. That README owns no notes, links none, and every commit touching it is excluded, so both derivations come up empty; the author placed it on the day the first certification referencing it begins. The table is consulted **only** after both derivations return nothing, so a declared date can never override one the corpus actually carries.

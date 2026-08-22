@@ -856,8 +856,9 @@ describe('a stale exclusion table', () => {
     it('names every listed SHA that matched no commit', () => {
         const result = plan(corpus(), CORPUS_COMMITS);
 
-        // The fixture history shares no SHA with the real vault, so all nine
-        // report. On the real corpus every one of them matches.
+        // The fixture history shares no SHA with the real vault, so every entry
+        // reports. On the real corpus every one of them matches, which is the
+        // check that would have caught a seventh Lint commit going unlisted.
         assert.equal(result.unmatchedCommits.length, BULK_COMMITS.length);
     });
 

@@ -68,8 +68,13 @@ export type BulkCommit = {
  * v5) touches 51 note files and `b4add3c` (Advent of Cyber '24) touches 38,
  * against 6 to 84 here. Any threshold rule would silently discard real dates.
  *
- * The last two postdate the spec: story 1 introduced them, so migration-plan.md
- * still names only the 7 below them.
+ * The last four postdate the spec, so migration-plan.md still names only the 7
+ * above them: story 1 introduced the Prettier and renormalize passes, and the
+ * story 6 dry run caught the two at the foot of the table.
+ *
+ * `noteFiles` is not a criterion, only a record of what was read. Two of these
+ * touch a single file each and still belong: what disqualifies a commit is that
+ * its date says nothing about when the note was studied.
  */
 export const BULK_COMMITS: readonly BulkCommit[] = [
     { sha: '2409228', subject: 'Apply the Prettier and markdownlint pass', noteFiles: 34 },
@@ -81,6 +86,16 @@ export const BULK_COMMITS: readonly BulkCommit[] = [
     { sha: '3bc06ff', subject: 'chore(migration): Platzi Lint', noteFiles: 6 },
     { sha: '1b3c2de', subject: 'chore(migration): Books Lint', noteFiles: 21 },
     { sha: 'acfe6cc', subject: 'chore(migration): Midu.dev Lint', noteFiles: 7 },
+    // The seventh reformatting pass, missed when the other six were collected.
+    // It is the only commit on either Santander README and the last on all 6 of
+    // its notes, so leaving it in dated the whole resource 2026-03-26 against a
+    // real study commit of 2025-06-17.
+    { sha: '13661b9', subject: 'chore(migration): Santander Open Academy Lint', noteFiles: 2 },
+    // Repair work on this contract rather than study: it corrected `salesfoce`
+    // to `salesforce` in a link the superseded url-lifting rule would have
+    // promoted into frontmatter. Left in, it stamped one Veeva note, and the
+    // certification index above it, with the day the migration itself ran.
+    { sha: '1235c34', subject: 'Fix misspelled Salesforce link', noteFiles: 1 },
 ];
 
 /**

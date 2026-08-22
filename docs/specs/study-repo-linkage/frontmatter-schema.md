@@ -4,19 +4,19 @@ The contract every note in `my-studies` carries. Enforced by `studylink validate
 
 ## Fields
 
-| Field | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `source` | string enum | yes, except the vault-root index | Platform key. In use after the prune: `books`, `midudev`, `santander`, `tryhackme`, `veeva`. Reserved for the author's stated return to those platforms: `platzi`. Also valid: `external` for one-off resources. Adding a key is a one-line change; unused keys are harmless. |
-| `url` | string | yes on index notes, optional on leaf notes | Canonical URL of the course, room, or book. `external` requires it on every note. |
-| `slug` | string | yes, except `kind: platform` | Stable cross-repo identifier. See **Slug convention**. Unique across the vault. |
-| `status` | string enum | yes | One of: `backlog`, `active`, `done`, `dropped`. Human-authored intent. `stalled` is deliberately **not** a value here; see **Status semantics**. |
-| `outline_total` | integer | optional, `kind: index` only | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing. |
-| `started` | date `YYYY-MM-DD` | required when `status` is not `backlog`, except `kind: platform` | First day of study. Migration derives it from the first commit touching the file. |
-| `finished` | date `YYYY-MM-DD` | required when `status` is `done`, except `kind: platform` | Migration derives it from the last commit touching the file. Must not precede `started`. |
-| `tags` | list of strings | yes, may be empty | Topic axis, lowercase kebab-case. This is the retrieval layer that replaces folder reorganization. |
-| `code` | list of strings | yes, may be empty | Relative paths from the note to sibling-repo directories. See **Cross-repo references**. |
-| `code_url` | string | required when `code` is non-empty | Canonical `github.com/LuigiEspinosa/my-studies-code/tree/main/...` URL, because relative cross-repo links do not resolve on github.com. |
-| `kind` | string enum | yes | `platform`, `index`, or `note`. See **Kinds**. |
+| Field           | Type              | Required                                                         | Notes                                                                                                                                                                                                                                                                         |
+| --------------- | ----------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`        | string enum       | yes, except the vault-root index                                 | Platform key. In use after the prune: `books`, `midudev`, `santander`, `tryhackme`, `veeva`. Reserved for the author's stated return to those platforms: `platzi`. Also valid: `external` for one-off resources. Adding a key is a one-line change; unused keys are harmless. |
+| `url`           | string            | yes on index notes, optional on leaf notes                       | Canonical URL of the course, room, or book. `external` requires it on every note.                                                                                                                                                                                             |
+| `slug`          | string            | yes, except `kind: platform`                                     | Stable cross-repo identifier. See **Slug convention**. Unique across the vault.                                                                                                                                                                                               |
+| `status`        | string enum       | yes                                                              | One of: `backlog`, `active`, `done`, `dropped`. Human-authored intent. `stalled` is deliberately **not** a value here; see **Status semantics**.                                                                                                                              |
+| `outline_total` | integer           | optional, `kind: index` only                                     | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing.                                                                                                                                        |
+| `started`       | date `YYYY-MM-DD` | required when `status` is not `backlog`, except `kind: platform` | First day of study. Migration derives it from the first commit touching the file.                                                                                                                                                                                             |
+| `finished`      | date `YYYY-MM-DD` | required when `status` is `done`, except `kind: platform`        | Migration derives it from the last commit touching the file. Must not precede `started`.                                                                                                                                                                                      |
+| `tags`          | list of strings   | yes, may be empty                                                | Topic axis, lowercase kebab-case. This is the retrieval layer that replaces folder reorganization.                                                                                                                                                                            |
+| `code`          | list of strings   | yes, may be empty                                                | Relative paths from the note to sibling-repo directories. See **Cross-repo references**.                                                                                                                                                                                      |
+| `code_url`      | string            | required when `code` is non-empty                                | Canonical `github.com/LuigiEspinosa/my-studies-code/tree/main/...` URL, because relative cross-repo links do not resolve on github.com.                                                                                                                                       |
+| `kind`          | string enum       | yes                                                              | `platform`, `index`, or `note`. See **Kinds**.                                                                                                                                                                                                                                |
 
 Unknown keys are permitted and ignored, so Obsidian plugins can add their own without failing validation.
 
@@ -24,11 +24,11 @@ Unknown keys are permitted and ignored, so Obsidian plugins can add their own wi
 
 The vault has three tiers, and the middle one is the only tier that maps to a study resource.
 
-| `kind` | Files | What it is |
-| --- | --- | --- |
+| `kind`     | Files                                                    | What it is                                                                                                                                                                                                               |
+| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `platform` | 6: the vault root `README.md` and the 5 platform READMEs | Structural navigation above the resource level. Not a study resource, so it carries no `slug`, `started`, or `finished`. The root additionally carries no `source`, because there is no path segment to derive one from. |
-| `index` | 16 resource READMEs | A course, room, book, or certification. Owns `outline_total` where an outline exists. |
-| `note` | 99 leaf notes | A unit of study. The 5 Midu.dev workshops are resources represented by a leaf note rather than a folder, so `kind: note` does not imply "belongs to an index". |
+| `index`    | 16 resource READMEs                                      | A course, room, book, or certification. Owns `outline_total` where an outline exists.                                                                                                                                    |
+| `note`     | 99 leaf notes                                            | A unit of study. The 5 Midu.dev workshops are resources represented by a leaf note rather than a folder, so `kind: note` does not imply "belongs to an index".                                                           |
 
 A `platform` file requires only `kind`, `status`, `tags`, and `source` where derivable. It exists in the contract so that `studylink validate` covers all 121 files rather than carving 6 of them out; without it the slug regex in rule 5 rejects `books` for having no `/`.
 
@@ -38,14 +38,14 @@ A `platform` file requires only `kind`, `status`, `tags`, and `source` where der
 
 The four `status` values are **intent**, authored by the human. Everything else is derived, so the tool can never overwrite a judgement call.
 
-| State | Kind | How it is established |
-| --- | --- | --- |
-| `backlog` | stored | Author intends to start it. |
-| `active` | stored | Author is working on it. |
-| `done` | stored | Author says it is finished. |
-| `dropped` | stored | Author is not going back to it. |
-| **stalled** | **derived, never stored** | `status: active` and no commit touching it in `--stale` days (default 30). |
-| **coverage** | **derived, never stored** | Units written divided by `outline_total`, where an outline exists. |
+| State        | Kind                      | How it is established                                                      |
+| ------------ | ------------------------- | -------------------------------------------------------------------------- |
+| `backlog`    | stored                    | Author intends to start it.                                                |
+| `active`     | stored                    | Author is working on it.                                                   |
+| `done`       | stored                    | Author says it is finished.                                                |
+| `dropped`    | stored                    | Author is not going back to it.                                            |
+| **stalled**  | **derived, never stored** | `status: active` and no commit touching it in `--stale` days (default 30). |
+| **coverage** | **derived, never stored** | Units written divided by `outline_total`, where an outline exists.         |
 
 The rule behind this split: **dates cannot distinguish finished from abandoned.** A file untouched for 500 days looks identical either way. Timestamps prove only that nothing is happening, never why. So staleness is computable and completion is not.
 

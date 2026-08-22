@@ -36,6 +36,7 @@ Checks every note in `notesRoot` against the 11 rules in [frontmatter-schema.md]
 - Exit 2: operational failure (repo not found, unreadable file).
 
 Flags:
+
 - `--json` emits machine-readable findings instead of text.
 - `--quiet` suppresses per-file output, prints only the summary count.
 
@@ -49,20 +50,20 @@ Default is dry run: prints the diff, changes nothing, exits 0 if there would be 
 
 **Blocks are seeded, not derived.** The indexes are not flat link lists. Measured across all 22:
 
-| Shape | Count |
-| --- | --- |
-| Flat list, no `##` sections | 5 |
-| Carries `##` sections | 17 |
-| Opens with an anchor-link table of contents into its own sections | 10 |
-| Links notes owned by **other** resources | 11 |
+| Shape                                                             | Count |
+| ----------------------------------------------------------------- | ----- |
+| Flat list, no `##` sections                                       | 5     |
+| Carries `##` sections                                             | 17    |
+| Opens with an anchor-link table of contents into its own sections | 10    |
+| Links notes owned by **other** resources                          | 11    |
 
 Two consequences fix the design. First, membership is authored: `Veeva Learning/Engage Technical Certification v5/README.md` pulls notes from `../CLM Technical Certification v5/` and `../Engage for Portals Business Certification v3/`, so listing a folder's contents would drop them. Second, link text is not reconstructible. Three files, three different rules:
 
-| Index label | Target `# H1` | Derivation that produces it |
-| --- | --- | --- |
-| `Chapter 6: Managing State with Redux` | `# Chapter 6: Managing State with Redux` | the H1 |
-| `Day 1: Maybe SOC-mas music, he thought, doesn't come from a store?` | `# Maybe SOC-mas music, he thought, doesn't come from a store?` | filename stem, then the H1 |
-| `Day 11: If you'd like to WPA, press the star key!` | `# If you'd like to WPA, press the star key` | none; the label ends in a character the H1 lacks |
+| Index label                                                          | Target `# H1`                                                   | Derivation that produces it                      |
+| -------------------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
+| `Chapter 6: Managing State with Redux`                               | `# Chapter 6: Managing State with Redux`                        | the H1                                           |
+| `Day 1: Maybe SOC-mas music, he thought, doesn't come from a store?` | `# Maybe SOC-mas music, he thought, doesn't come from a store?` | filename stem, then the H1                       |
+| `Day 11: If you'd like to WPA, press the star key!`                  | `# If you'd like to WPA, press the star key`                    | none; the label ends in a character the H1 lacks |
 
 So the first `--write` **seeds**: it wraps each authored section's list in a marker pair, capturing membership, link text, and order exactly as they stand. Every run after that maintains what was seeded.
 

@@ -10,13 +10,13 @@ Satisfies CAP-5 and CAP-7. One automated pass over the pruned corpus, landing as
 
 An earlier version of this plan inferred `status` from file age and proposed a human triage pass. Both are gone. The author settled every resource directly, and all 21 resolve to `done`:
 
-| Platform | Resources | Status |
-| --- | --- | --- |
-| Books | ASP.Net Core 3 and React | done |
-| Midu.dev | 5 workshops | done |
-| Santander Open Academy | High-Performance Leadership | done |
-| TryHackMe | Advent of Cyber 2024 | done |
-| Veeva Learning | 13 certifications | done |
+| Platform               | Resources                   | Status |
+| ---------------------- | --------------------------- | ------ |
+| Books                  | ASP.Net Core 3 and React    | done   |
+| Midu.dev               | 5 workshops                 | done   |
+| Santander Open Academy | High-Performance Leadership | done   |
+| TryHackMe              | Advent of Cyber 2024        | done   |
+| Veeva Learning         | 13 certifications           | done   |
 
 So migration writes `status: done` uniformly. There is nothing to triage and nothing to guess. This is the whole benefit of doing the prune first.
 
@@ -24,18 +24,18 @@ So migration writes `status: done` uniformly. There is nothing to triage and not
 
 Run by `studylink migrate`, deriving each field mechanically:
 
-| Field | Derived from |
-| --- | --- |
-| `source` | First path segment, mapped through a fixed table (`Midu.dev` to `midudev`, `Santander Open Academy` to `santander`, `Veeva Learning` to `veeva`, `TryHackMe` to `tryhackme`, `Books` to `books`). |
-| `slug` | Remaining path segments, lowercased, accents folded to ASCII, non-alphanumerics collapsed to single hyphens, `.md` and `README` dropped. |
-| `kind` | `index` if the filename is `README.md`, else `note`. |
-| `status` | `done`, uniformly. See above. |
-| `started` | Date of the **first** commit touching the file. |
-| `finished` | Date of the **last** commit touching the file. |
-| `tags` | Empty list. Deliberately not guessed. |
-| `url` | Lifted only when the note body carries a single obvious source link in its first 5 lines; the original line stays. |
-| `code` | Populated only where a directory of the same `<source>/<course>` shape exists in the sibling repo. |
-| `outline_total` | Omitted. No surviving resource carries an outline. |
+| Field           | Derived from                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`        | First path segment, mapped through a fixed table (`Midu.dev` to `midudev`, `Santander Open Academy` to `santander`, `Veeva Learning` to `veeva`, `TryHackMe` to `tryhackme`, `Books` to `books`). |
+| `slug`          | Remaining path segments, lowercased, accents folded to ASCII, non-alphanumerics collapsed to single hyphens, `.md` and `README` dropped.                                                          |
+| `kind`          | `index` if the filename is `README.md`, else `note`.                                                                                                                                              |
+| `status`        | `done`, uniformly. See above.                                                                                                                                                                     |
+| `started`       | Date of the **first** commit touching the file.                                                                                                                                                   |
+| `finished`      | Date of the **last** commit touching the file.                                                                                                                                                    |
+| `tags`          | Empty list. Deliberately not guessed.                                                                                                                                                             |
+| `url`           | Lifted only when the note body carries a single obvious source link in its first 5 lines; the original line stays.                                                                                |
+| `code`          | Populated only where a directory of the same `<source>/<course>` shape exists in the sibling repo.                                                                                                |
+| `outline_total` | Omitted. No surviving resource carries an outline.                                                                                                                                                |
 
 Two commit classes are **excluded** from date derivation, because both touched many files at once and would otherwise flatten `finished` across whole platforms:
 

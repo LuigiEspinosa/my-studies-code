@@ -34,10 +34,10 @@ Measured after the prune: the `my-studies-code` working tree is **398 files and 
 
 The largest are triplicated 3D models from the Vue course, one copy per lesson variant:
 
-| File | Size | Copies |
-| --- | --- | --- |
+| File                                                                | Size        | Copies                           |
+| ------------------------------------------------------------------- | ----------- | -------------------------------- |
 | `Experiencias 3D con Vue/lessons/*/public/models/standing-desk.glb` | ~60 MB each | 3 (starter, lighting, animation) |
-| `Experiencias 3D con Vue/lessons/*/public/models/laptop.glb` | 12 MB each | 2 |
+| `Experiencias 3D con Vue/lessons/*/public/models/laptop.glb`        | 12 MB each  | 2                                |
 
 After any `npm install` the tree also carries `node_modules` on disk, even though git ignores it.
 
@@ -97,10 +97,10 @@ Building the CLI in Node supplies `my-studies-code` with the manifest it lacks, 
 
 `core.autocrlf` is `true` and **neither repo has a `.gitattributes`**, so the working tree is uniformly CRLF on Windows while the object database is mixed:
 
-| Repo | Stored CRLF | Of which markdown | Tracked files |
-| --- | --- | --- | --- |
-| `my-studies` | 22 | 19, all under Veeva Learning | 158 |
-| `my-studies-code` | 264 | 8 | 376 |
+| Repo              | Stored CRLF | Of which markdown            | Tracked files |
+| ----------------- | ----------- | ---------------------------- | ------------- |
+| `my-studies`      | 22          | 19, all under Veeva Learning | 158           |
+| `my-studies-code` | 264         | 8                            | 376           |
 
 `.prettierrc.js` sets `endOfLine: "crlf"`, which passes on Windows only because of the `autocrlf` setting, and fails on every file under WSL2 where the same content checks out as LF. Since SPEC.md constrains the tool to run in both, CAP-7 could not hold in both places as originally written.
 

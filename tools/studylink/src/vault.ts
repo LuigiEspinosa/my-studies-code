@@ -25,6 +25,21 @@ export const NOTE_EXCLUSIONS: readonly string[] = ['AGENTS.md'];
 export const SKIPPED_DIRS: readonly string[] = ['node_modules'];
 
 /**
+ * Top-level directories of the notes vault that hold no study notes.
+ *
+ * `Templates` holds Obsidian note templates: skeleton frontmatter carrying
+ * placeholder values. A template is not a unit of study and cannot satisfy the
+ * schema, because its path yields no valid `source`. It cannot live in a
+ * dot-prefixed folder either, since Obsidian does not index those and the
+ * Templates plugin would never see it, so the folder is visible and skipped
+ * here instead.
+ *
+ * Top level only: a resource legitimately named `Templates` deeper in the tree
+ * is still a resource.
+ */
+export const NOTES_NON_STUDY_DIRS: readonly string[] = ['Templates'];
+
+/**
  * Top-level directories of the code repo that hold no study code.
  *
  * Everything else at the top level is a platform, and its children are the
@@ -83,7 +98,8 @@ export function listNotes(notesRoot: string): NoteFile[] {
     const walk = (posixDir: string, prefix: string): void => {
         for (const entry of readDir(posixDir)) {
             if (entry.isDirectory()) {
-                if (isSkippedDir(entry.name)) {
+                const nonStudyTopLevel = prefix === '' && NOTES_NON_STUDY_DIRS.includes(entry.name);
+                if (isSkippedDir(entry.name) || nonStudyTopLevel) {
                     continue;
                 }
                 walk(path.posix.join(posixDir, entry.name), `${prefix}${entry.name}/`);

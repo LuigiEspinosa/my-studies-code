@@ -21,6 +21,7 @@ import {
     listNotes,
     listOwnedNotes,
     NOTE_EXCLUSIONS,
+    NOTES_NON_STUDY_DIRS,
     normalizeWikilinkTarget,
     readNote,
     resolvesInVault,
@@ -87,6 +88,25 @@ describe('listNotes', () => {
         assert.deepEqual(
             listNotes(root).map((note) => note.relativePath),
             ['Books/README.md', 'README.md']
+        );
+    });
+
+    it('skips a top-level Templates directory, but not one nested deeper', () => {
+        assert.deepEqual(NOTES_NON_STUDY_DIRS, ['Templates']);
+
+        // Obsidian will not read templates from a dot-prefixed folder, so the
+        // folder has to be visible in the vault and skipped here instead. A
+        // resource that happens to be named Templates is still a resource.
+        const root = tree({
+            'README.md': '# root\n',
+            'Templates/Study Note.md': '# template\n',
+            'Books/README.md': '# books\n',
+            'Books/Templates/README.md': '# a book about templates\n',
+        });
+
+        assert.deepEqual(
+            listNotes(root).map((note) => note.relativePath),
+            ['Books/README.md', 'Books/Templates/README.md', 'README.md']
         );
     });
 

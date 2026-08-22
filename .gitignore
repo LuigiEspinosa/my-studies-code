@@ -1262,5 +1262,6 @@ $RECYCLE.BIN/
 ### studylink ###
 # The generated template above carries a blanket `test/` rule (line 1051,
 # annotated "where does this rule come from?" in the template itself). It
-# silently swallows the studylink suite, so re-include that one directory.
-!tools/studylink/test/
+# silently swallows every test directory at any depth, so neutralize it once
+# here instead of negating one path at a time.
+!test/

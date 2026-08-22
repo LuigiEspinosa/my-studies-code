@@ -15,7 +15,7 @@ All three commits are pushed to `origin/main`.
 
 Branch housekeeping landed at the same time. `my-studies-code` carried three stale remote branches, none merged into main: `exercism-js` and `leetcode` held superseded versions of files main already had, while `codewars` held 6 files (two katas plus their tests) that existed **nowhere else**. The author was told this and chose deletion. SHAs recorded before the delete, recoverable through GitHub for a limited window only: `codewars` `7c6e8483`, `exercism-js` `fbaa93c8`, `leetcode` `ef7109b9`. Both repos are now single-branch, local and remote.
 
-Corpus went from 172 notes across 10 platforms to **121 notes (99 leaf, 22 index) across 21 resources on 5 platforms**. Every surviving resource is `status: done`.
+Corpus went from 172 notes across 10 platforms to **21 resources on 5 platforms**, and every surviving resource is `status: done`. The note count immediately after the prune was 121; it is 120 now, one duplicate having been deleted since. Current measured counts live in [verification.md](verification.md), and the contract itself asserts completeness rather than a number.
 
 Three index READMEs were repaired by hand during the prune, because the generator does not exist yet: the root `README.md` (10 platform links down to 5), `Books/README.md`, and `TryHackMe/README.md`. CAP-3 acceptance requires the generator to reproduce these exactly; a diff there means the generator is wrong, not the hand repair.
 
@@ -77,7 +77,7 @@ After the prune and the subsequent Exercism and LeetCode drop (commit `837a7da`,
 - Notes only: Santander Open Academy, TryHackMe, Veeva Learning
 - Code only: none
 
-Only 3 of 21 resources have a code counterpart, so `code: []` is the common case rather than the exception. In the other direction every code directory is now reachable from a note, so the "code without notes" warning has no current instances. The rule stays in the contract because the situation will recur; it simply needs no suppression list today.
+5 of the 21 resources have a code counterpart, so `code: []` is the common case rather than the exception, at 16 of 21. In the other direction every code directory is now reachable from a note, so the "code without notes" warning has no current instances. The rule stays in the contract because the situation will recur; it simply needs no suppression list today.
 
 Per the author's decision, empty `Platzi/` and `TryHackMe/` folders are **not** pre-created in the code repo; they appear when a course or room first produces code.
 

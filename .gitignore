@@ -1258,3 +1258,9 @@ $RECYCLE.BIN/
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/git,vue,node,linux,macos,react,vuejs,python,angular,windows,exercism,firebase,aspnetcore,executable,visualstudio,visualstudiocode,c,c++,csharp
+
+### studylink ###
+# The generated template above carries a blanket `test/` rule (line 1051,
+# annotated "where does this rule come from?" in the template itself). It
+# silently swallows the studylink suite, so re-include that one directory.
+!tools/studylink/test/

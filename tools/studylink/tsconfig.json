@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "esnext",
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "lib": ["esnext"],
+        "types": ["node"],
+
+        "strict": true,
+        "noUncheckedIndexedAccess": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "verbatimModuleSyntax": true,
+
+        // Node 24 runs this source directly by stripping the types, so there is
+        // no build step and no bundler. erasableSyntaxOnly keeps the source
+        // inside the subset that stripping supports: no enums, no namespaces,
+        // no parameter properties.
+        "erasableSyntaxOnly": true,
+        "allowImportingTsExtensions": true,
+        "noEmit": true,
+
+        "skipLibCheck": true
+    },
+    "include": ["src/**/*.ts", "test/**/*.ts"]
+}

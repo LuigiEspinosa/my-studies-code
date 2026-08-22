@@ -62,13 +62,13 @@ function captureIo(cwd: string): Io & { out: string[]; err: string[] } {
 }
 
 /** The commands still waiting for their own story. */
-const UNIMPLEMENTED = COMMANDS.filter((command) => command !== 'validate');
+const UNIMPLEMENTED = COMMANDS.filter((command) => command !== 'validate' && command !== 'index');
 
 describe('dispatch', () => {
     it('fails every command that has no implementation yet', () => {
         // Guards the mutation that turns this into EXIT_OK, which would let an
         // unbuilt command report success to a caller or a CI job.
-        assert.deepEqual(UNIMPLEMENTED, ['index', 'status', 'migrate']);
+        assert.deepEqual(UNIMPLEMENTED, ['status', 'migrate']);
 
         for (const command of UNIMPLEMENTED) {
             const io = captureIo(commonParent);
@@ -88,6 +88,24 @@ describe('dispatch', () => {
         assert.equal(code, EXIT_OK, 'an empty vault has nothing to violate');
         assert.equal(io.err.length, 0);
         assert.match(io.out.join(''), /0 files checked, 0 violations/);
+    });
+
+    it('routes index to its implementation, and leaves an empty vault alone', () => {
+        const io = captureIo(commonParent);
+        const code = run(['index'], io);
+
+        assert.equal(code, EXIT_OK, 'a vault with no index has nothing to seed');
+        assert.equal(io.err.length, 0);
+        assert.match(io.out.join(''), /0 indexes: 0 blocks seeded/);
+        assert.match(io.out.join(''), /no changes/);
+    });
+
+    it('accepts --write on index and refuses it elsewhere', () => {
+        const io = captureIo(commonParent);
+
+        assert.equal(run(['index', '--write'], io), EXIT_OK);
+        assert.throws(() => parseArgs(['index', '--stale', '7']), UsageError);
+        assert.throws(() => parseArgs(['validate', '--write']), UsageError);
     });
 
     it('reports validate findings as JSON under --json', () => {

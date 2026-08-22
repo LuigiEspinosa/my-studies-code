@@ -11,6 +11,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { applyChanges, formatPlan, planIndex } from './commands/index.ts';
 import { formatJson, formatText, validateVault } from './commands/validate.ts';
 import { ConfigError, DEFAULT_STALE_DAYS, resolveConfig, type RepoConfig } from './config.ts';
 import { VaultError } from './vault.ts';
@@ -232,6 +233,9 @@ function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
     if (parsed.command === 'validate') {
         return runValidate(parsed, config, io);
     }
+    if (parsed.command === 'index') {
+        return runIndex(parsed, config, io);
+    }
 
     // The remaining command bodies land in their own stories. Until then a known
     // command resolves its config, reports that it has no implementation, and
@@ -279,6 +283,39 @@ export function runValidate(parsed: ParsedArgs, config: RepoConfig, io: Io): num
     io.stdout(parsed.flags.has('--json') ? formatJson(result, quiet) : formatText(result, quiet));
 
     return result.violations.length > 0 ? EXIT_FINDINGS : EXIT_OK;
+}
+
+/**
+ * Run `index` and map its plan to an exit code.
+ *
+ * A dry run that would change something is a finding, the same way a violation
+ * is: story 6 runs the command twice and requires the second run to be silent.
+ * With `--write` the changes are applied and the run succeeds.
+ *
+ * Exported for the same reason `runValidate` is: a `VaultError` cannot be
+ * reached through `run`, because config resolution has already proved both
+ * checkouts exist by the time dispatch happens.
+ */
+export function runIndex(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
+    const write = parsed.flags.has('--write');
+
+    let result;
+    try {
+        result = planIndex(config);
+        if (write) {
+            applyChanges(result.changes);
+        }
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    io.stdout(formatPlan(result, write));
+
+    return !write && result.changes.length > 0 ? EXIT_FINDINGS : EXIT_OK;
 }
 
 function isEntryPoint(): boolean {

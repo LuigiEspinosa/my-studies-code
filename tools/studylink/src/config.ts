@@ -19,6 +19,16 @@ export const CODE_DIR_NAME = 'my-studies-code';
 /** Days without a commit after which an `active` resource counts as stalled. */
 export const DEFAULT_STALE_DAYS = 30;
 
+/**
+ * Canonical GitHub location of a note.
+ *
+ * Relative cross-repo links do not resolve on github.com, which is why the
+ * contract records a URL alongside every relative path. A note is a file, so it
+ * takes `blob`; the matching `tree` base for a `code` directory belongs to
+ * story 5, which is where `code_url` is written.
+ */
+export const NOTES_FILE_URL_BASE = 'https://github.com/LuigiEspinosa/my-studies/blob/main/';
+
 export type RepoConfig = {
     /** Absolute POSIX path to the notes checkout. */
     readonly notesRoot: string;

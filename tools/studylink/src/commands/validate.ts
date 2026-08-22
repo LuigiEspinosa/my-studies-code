@@ -641,23 +641,32 @@ function warnStale(
     );
 }
 
+/**
+ * True when a resolved `code` entry claims a study directory: it either is that
+ * directory or sits inside it.
+ *
+ * `index` builds its reverse links from the same rule, so it lives here rather
+ * than being stated twice. The comparison is case-insensitive because the two
+ * repos spell the same resource differently, `ASP.Net` against `ASP.NET`.
+ */
+export function claimsCodeDir(resolvedEntry: string, codeDir: string): boolean {
+    const entry = resolvedEntry.toLowerCase();
+    const dir = codeDir.toLowerCase();
+    return entry === dir || entry.startsWith(`${dir}/`);
+}
+
 /** SLW3: a code-repo study directory no note points into. Advisory, never an error. */
 function warnOrphanCodeDirs(
     loaded: readonly LoadedNote[],
     config: RepoConfig,
     out: Finding[]
 ): void {
-    const claimed = loaded
-        .flatMap((entry) => entry.resolvedCode)
-        .map((resolved) => resolved.toLowerCase());
+    const claimed = loaded.flatMap((entry) => entry.resolvedCode);
     const codeName = path.posix.basename(config.codeRoot);
 
     for (const relative of listCodeStudyDirs(config.codeRoot)) {
-        const absolute = path.posix.join(config.codeRoot, relative).toLowerCase();
-        const isClaimed = claimed.some(
-            (entry) => entry === absolute || entry.startsWith(`${absolute}/`)
-        );
-        if (isClaimed) {
+        const absolute = path.posix.join(config.codeRoot, relative);
+        if (claimed.some((entry) => claimsCodeDir(entry, absolute))) {
             continue;
         }
         out.push({

@@ -16,13 +16,16 @@ import { after, before, describe, it } from 'node:test';
 import { toPosix } from '../src/config.ts';
 import {
     findWikilinks,
+    isIndexFile,
     listCodeStudyDirs,
     listNotes,
+    listOwnedNotes,
     NOTE_EXCLUSIONS,
     normalizeWikilinkTarget,
     readNote,
     resolvesInVault,
     VaultError,
+    writeNote,
 } from '../src/vault.ts';
 
 let fixtureRoot: string;
@@ -107,6 +110,37 @@ describe('listNotes', () => {
     it('fails operationally on a root that cannot be read', () => {
         assert.throws(() => listNotes(`${fixtureRoot}/missing`), VaultError);
         assert.throws(() => readNote(`${fixtureRoot}/missing.md`), VaultError);
+    });
+
+    it('fails operationally on a file that cannot be written', () => {
+        // Without the wrapper, `index --write` would report files written and
+        // exit 0 after writing nothing.
+        const root = tree({ 'Books/README.md': '# books\n' });
+
+        assert.throws(() => writeNote(`${root}/Books`, 'not a file'), VaultError);
+    });
+});
+
+describe('listOwnedNotes', () => {
+    it('takes sibling notes and subdirectory indexes, and nothing else', () => {
+        const root = tree({
+            'README.md': '# root\n',
+            'Readme.md': '# same file on Windows, an index either way\n',
+            'AGENTS.md': '# agents\n',
+            'Note.md': '# note\n',
+            'diagram.png': 'not markdown',
+            'Books/README.md': '# books\n',
+            'Books/Deep/README.md': '# too deep to own\n',
+            'node_modules/pkg/README.md': '# package\n',
+            '.obsidian/plugins/thing/README.md': '# plugin\n',
+        });
+
+        assert.deepEqual(
+            listOwnedNotes(root).map((owned) => owned.slice(root.length + 1)),
+            ['Books/README.md', 'Note.md']
+        );
+        assert.equal(isIndexFile('Readme.md'), true);
+        assert.equal(isIndexFile('Note.md'), false);
     });
 });
 

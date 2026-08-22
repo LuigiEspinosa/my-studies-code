@@ -6,7 +6,7 @@
  * lives here rather than inside a command.
  */
 
-import { readdirSync, readFileSync, statSync, type Dirent } from 'node:fs';
+import { readdirSync, readFileSync, statSync, writeFileSync, type Dirent } from 'node:fs';
 import path from 'node:path';
 
 import { toFsPath } from './config.ts';
@@ -137,12 +137,76 @@ export function listCodeStudyDirs(codeRoot: string): string[] {
     return dirs;
 }
 
+/**
+ * True when a filename is a directory's index note.
+ *
+ * Matched case-insensitively, the same way the `.md` extension is, so that a
+ * `Readme.md` is recognized as the index rather than treated as a note the
+ * index owns and then linked from itself.
+ */
+export function isIndexFile(fileName: string): boolean {
+    return fileName.toLowerCase() === 'readme.md';
+}
+
+/**
+ * The notes a directory owns: its own `.md` files, minus its own `README.md`,
+ * plus the `README.md` of each immediate subdirectory.
+ *
+ * This is the membership candidate set for an index, and deliberately not the
+ * set an index links: 11 indexes link notes owned by other resources, and those
+ * links are authored rather than discovered.
+ *
+ * @throws {VaultError} when the directory cannot be read.
+ */
+export function listOwnedNotes(posixDir: string): string[] {
+    const owned: string[] = [];
+
+    for (const entry of readDir(posixDir)) {
+        if (entry.isDirectory()) {
+            if (isSkippedDir(entry.name)) {
+                continue;
+            }
+            const readme = path.posix.join(posixDir, entry.name, 'README.md');
+            if (exists(readme)) {
+                owned.push(readme);
+            }
+            continue;
+        }
+        if (!entry.isFile() || !entry.name.toLowerCase().endsWith('.md')) {
+            continue;
+        }
+        if (isIndexFile(entry.name) || NOTE_EXCLUSIONS.includes(entry.name)) {
+            continue;
+        }
+        owned.push(path.posix.join(posixDir, entry.name));
+    }
+
+    owned.sort((a, b) => (a < b ? -1 : 1));
+    return owned;
+}
+
 /** Read a file as UTF-8. @throws {VaultError} when it cannot be read. */
 export function readNote(posixPath: string): string {
     try {
         return readFileSync(toFsPath(posixPath), 'utf8');
     } catch (error) {
         throw new VaultError(`Could not read ${posixPath}: ${describe(error)}`);
+    }
+}
+
+/**
+ * Write a file as UTF-8, exactly as given.
+ *
+ * The text is written byte for byte, so line endings are whatever the caller
+ * assembled. Both repos pin `text=auto eol=lf`, so callers join on `\n`.
+ *
+ * @throws {VaultError} when it cannot be written.
+ */
+export function writeNote(posixPath: string, text: string): void {
+    try {
+        writeFileSync(toFsPath(posixPath), text, 'utf8');
+    } catch (error) {
+        throw new VaultError(`Could not write ${posixPath}: ${describe(error)}`);
     }
 }
 

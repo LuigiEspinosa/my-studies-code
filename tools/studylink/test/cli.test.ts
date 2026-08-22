@@ -61,11 +61,16 @@ function captureIo(cwd: string): Io & { out: string[]; err: string[] } {
     };
 }
 
+/** The commands still waiting for their own story. */
+const UNIMPLEMENTED = COMMANDS.filter((command) => command !== 'validate');
+
 describe('dispatch', () => {
     it('fails every command that has no implementation yet', () => {
         // Guards the mutation that turns this into EXIT_OK, which would let an
         // unbuilt command report success to a caller or a CI job.
-        for (const command of COMMANDS) {
+        assert.deepEqual(UNIMPLEMENTED, ['index', 'status', 'migrate']);
+
+        for (const command of UNIMPLEMENTED) {
             const io = captureIo(commonParent);
             const code = run([command], io);
 
@@ -76,9 +81,49 @@ describe('dispatch', () => {
         }
     });
 
+    it('routes validate to its implementation instead of the stub', () => {
+        const io = captureIo(commonParent);
+        const code = run(['validate'], io);
+
+        assert.equal(code, EXIT_OK, 'an empty vault has nothing to violate');
+        assert.equal(io.err.length, 0);
+        assert.match(io.out.join(''), /0 files checked, 0 violations/);
+    });
+
+    it('reports validate findings as JSON under --json', () => {
+        const io = captureIo(commonParent);
+        const code = run(['validate', '--json'], io);
+
+        assert.equal(code, EXIT_OK);
+        assert.deepEqual(JSON.parse(io.out.join('')), {
+            ok: true,
+            summary: { files: 0, violations: 0, warnings: 0, plannedNotes: 0 },
+            violations: [],
+            warnings: [],
+            plannedNotes: [],
+        });
+    });
+
+    it('reduces validate to a summary under --quiet', () => {
+        const io = captureIo(commonParent);
+
+        assert.equal(run(['validate', '--quiet'], io), EXIT_OK);
+        assert.equal(
+            io.out.join(''),
+            '0 files checked, 0 violations, 0 warnings, 0 planned notes\n'
+        );
+    });
+
+    it('accepts --stale on validate, which owns the stalled warning', () => {
+        const io = captureIo(commonParent);
+
+        assert.equal(run(['validate', '--stale', '7'], io), EXIT_OK);
+        assert.throws(() => parseArgs(['validate', '--stale', 'nope']), UsageError);
+    });
+
     it('reports the roots it resolved', () => {
         const io = captureIo(commonParent);
-        run(['validate'], io);
+        run(['migrate'], io);
         const err = io.err.join('');
 
         assert.match(err, new RegExp(`notes: .*${NOTES_DIR_NAME}`));

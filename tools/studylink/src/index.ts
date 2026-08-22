@@ -2,9 +2,8 @@
 /**
  * `studylink` entry point: argument parsing, config resolution, exit codes.
  *
- * The command bodies are deliberately absent. This is the shell the validate,
- * index, status and migrate commands are filled into; everything here is the
- * part they share.
+ * `validate` is wired up; `index`, `status` and `migrate` are still the shell
+ * their own stories fill in. Everything here is the part they share.
  */
 
 import { realpathSync } from 'node:fs';
@@ -12,7 +11,9 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
+import { formatJson, formatText, validateVault } from './commands/validate.ts';
 import { ConfigError, DEFAULT_STALE_DAYS, resolveConfig, type RepoConfig } from './config.ts';
+import { VaultError } from './vault.ts';
 
 /** Everything conformed, or the report ran. */
 export const EXIT_OK = 0;
@@ -36,7 +37,9 @@ const COMMAND_FLAGS: Record<Command, readonly string[]> = {
 
 /** Flags taking a value that each command accepts, beyond the global ones. */
 const COMMAND_VALUE_FLAGS: Record<Command, readonly string[]> = {
-    validate: [],
+    // validate takes --stale because one of its advisory warnings is the
+    // stalled signal, which is measured against the same threshold.
+    validate: ['--stale'],
     index: [],
     status: ['--stale'],
     migrate: [],
@@ -61,7 +64,7 @@ Commands:
 Options:
   --notes <path>         Use this notes checkout instead of discovering one
   --code <path>          Use this code checkout instead of discovering one
-  --stale <days>         Staleness threshold for status (default ${String(DEFAULT_STALE_DAYS)})
+  --stale <days>         Staleness threshold for status and validate (default ${String(DEFAULT_STALE_DAYS)})
   --json                 Emit machine-readable findings (validate)
   --quiet                Print only the summary count (validate)
   --write                Apply changes instead of printing a dry run
@@ -226,9 +229,13 @@ export function run(argv: readonly string[], io: Io): number {
 }
 
 function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
-    // The command bodies land in their own stories. Until then a known command
-    // resolves its config, reports that it has no implementation, and fails
-    // operationally rather than pretending to have succeeded.
+    if (parsed.command === 'validate') {
+        return runValidate(parsed, config, io);
+    }
+
+    // The remaining command bodies land in their own stories. Until then a known
+    // command resolves its config, reports that it has no implementation, and
+    // fails operationally rather than pretending to have succeeded.
     io.stderr(
         [
             `studylink ${parsed.command} is not implemented yet.`,
@@ -239,6 +246,39 @@ function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
         ].join('\n')
     );
     return EXIT_FAILURE;
+}
+
+/**
+ * Run `validate` and map its findings to an exit code.
+ *
+ * Warnings and planned notes are reported and then ignored here: only rule
+ * violations move the exit code off zero.
+ *
+ * Exported because a `VaultError` cannot be provoked through `run`: config
+ * resolution has already proved both roots exist by the time dispatch happens,
+ * so the only way to exercise this guard is to hand it a config directly.
+ */
+export function runValidate(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
+    let result;
+    try {
+        result = validateVault({
+            config,
+            // Story 4 replaces this with git.ts. Until commit dates exist the
+            // stalled warning has nothing to measure, so it never fires.
+            lastTouch: () => null,
+        });
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    const quiet = parsed.flags.has('--quiet');
+    io.stdout(parsed.flags.has('--json') ? formatJson(result, quiet) : formatText(result, quiet));
+
+    return result.violations.length > 0 ? EXIT_FINDINGS : EXIT_OK;
 }
 
 function isEntryPoint(): boolean {

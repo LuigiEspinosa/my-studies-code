@@ -21,11 +21,13 @@ import {
     COMMIT_MARKER,
     daysSince,
     FIELD_SEPARATOR,
+    firstTouchByFile,
     lastTouchByFile,
     lastTouchUnderDir,
     newestDate,
     parseCommitLog,
     readCommitLog,
+    withoutCommits,
 } from '../src/git.ts';
 
 const HAS_GIT = spawnSync('git', ['--version'], { encoding: 'utf8' }).status === 0;
@@ -174,6 +176,75 @@ describe('folding a commit stream into dates', () => {
         assert.equal(newestDate([null, '2026-01-01', null, '2026-02-02']), '2026-02-02');
         assert.equal(newestDate([null, null]), null);
         assert.equal(newestDate([]), null);
+    });
+
+    it('takes the oldest date per file for the first-touch fold', () => {
+        // The mirror of the case above, and the mutation it guards is the same
+        // one reversed: taking the last commit mentioning a file rather than the
+        // earliest date, which a rebase makes wrong.
+        const commits = [
+            { sha: 'a', date: '2026-01-01', files: ['note.md'] },
+            { sha: 'b', date: '2025-05-05', files: ['note.md'] },
+            { sha: 'c', date: '2026-03-03', files: ['note.md'] },
+        ];
+
+        assert.equal(firstTouchByFile(commits).get('note.md'), '2025-05-05');
+        assert.equal(lastTouchByFile(commits).get('note.md'), '2026-03-03');
+    });
+
+    it('ignores a dateless commit in the first-touch fold too', () => {
+        assert.equal(firstTouchByFile([{ sha: 'a', date: '', files: ['note.md'] }]).size, 0);
+    });
+});
+
+describe('excluding bulk commits', () => {
+    const LOG = [
+        { sha: '2409228f8973c7f1660bc255b11e7fa16a0f0096', date: '2026-08-21', files: ['a.md'] },
+        { sha: '9be50a6aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', date: '2025-03-01', files: ['a.md'] },
+        { sha: '1b3c2de4bcec78b7b8021c10136b2cbd35853a4f', date: '2026-03-27', files: ['b.md'] },
+    ];
+
+    it('drops the listed commits and keeps everything else', () => {
+        const filtered = withoutCommits(LOG, ['2409228', '1b3c2de']);
+
+        assert.deepEqual(
+            filtered.commits.map((commit) => commit.date),
+            ['2025-03-01']
+        );
+        assert.deepEqual(filtered.unmatched, []);
+    });
+
+    it('matches on an abbreviated prefix, the way the table is written', () => {
+        assert.equal(withoutCommits(LOG, ['2409228']).commits.length, 2);
+    });
+
+    it('leaves a file with nothing but excluded history undated', () => {
+        // This is the whole reason the filter exists as a step of its own: `b.md`
+        // has one commit and it is a reformatting pass, so no date about it is
+        // true, and inventing 2026-03-27 would say the study happened then.
+        const filtered = withoutCommits(LOG, ['1b3c2de']);
+
+        assert.equal(firstTouchByFile(filtered.commits).get('b.md'), undefined);
+        assert.equal(lastTouchByFile(filtered.commits).get('b.md'), undefined);
+    });
+
+    it('names a prefix that matched nothing rather than excluding silently', () => {
+        // A table that has drifted from the repository excludes nothing, which
+        // is indistinguishable from excluding exactly the right commits.
+        const filtered = withoutCommits(LOG, ['2409228', 'deadbee']);
+
+        assert.deepEqual(filtered.unmatched, ['deadbee']);
+    });
+
+    it('never lets an empty prefix match every commit', () => {
+        const filtered = withoutCommits(LOG, ['']);
+
+        assert.equal(filtered.commits.length, LOG.length);
+        assert.deepEqual(filtered.unmatched, ['']);
+    });
+
+    it('leaves the stream alone when nothing is excluded', () => {
+        assert.deepEqual(withoutCommits(LOG, []).commits, LOG);
     });
 });
 

@@ -3,7 +3,7 @@
  *
  * Line provenance is the reason this module exists, so most cases assert a line
  * number rather than only a value: a violation that cannot say where it is
- * costs the reader a search through a 121-file corpus.
+ * costs the reader a search through the whole corpus.
  */
 
 import assert from 'node:assert/strict';

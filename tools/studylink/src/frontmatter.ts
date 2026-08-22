@@ -71,7 +71,7 @@ export function splitLines(text: string): string[] {
  *
  * A file with no opening delimiter is not an error here: it comes back with
  * `present: false` and an empty entry list, and rule 1 decides what that means.
- * That is the state all 121 notes are in until the migration runs.
+ * That is the state every note in the vault is in until the migration runs.
  */
 export function parseFrontmatter(text: string): Frontmatter {
     const lines = splitLines(text);

@@ -24,10 +24,88 @@ export const DEFAULT_STALE_DAYS = 30;
  *
  * Relative cross-repo links do not resolve on github.com, which is why the
  * contract records a URL alongside every relative path. A note is a file, so it
- * takes `blob`; the matching `tree` base for a `code` directory belongs to
- * story 5, which is where `code_url` is written.
+ * takes `blob`, and a `code` directory takes `tree`.
  */
 export const NOTES_FILE_URL_BASE = 'https://github.com/LuigiEspinosa/my-studies/blob/main/';
+
+/** Canonical GitHub location of a code directory. The `tree` half of the pair. */
+export const CODE_TREE_URL_BASE = 'https://github.com/LuigiEspinosa/my-studies-code/tree/main/';
+
+/**
+ * Percent-encode a repo-relative path for use in a GitHub URL.
+ *
+ * `encodeURI` leaves `(`, `)`, `#` and `?` alone, and the corpus carries
+ * `Lo último de JavaScript (ES2023 & ES2024)`, whose parentheses would close a
+ * markdown link early. Accented letters stay literal, the way the corpus
+ * already writes its own destinations.
+ */
+export function encodeRepoPath(relativePath: string): string {
+    return encodeURI(relativePath).replace(
+        /[()#?]/g,
+        (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+    );
+}
+
+/**
+ * A commit whose dates say nothing about when a note was studied.
+ *
+ * Each of these rewrote or removed many notes at once, so leaving them in would
+ * flatten `finished` across a whole platform onto the day the reformatting ran.
+ */
+export type BulkCommit = {
+    /** Abbreviated SHA, matched as a prefix. */
+    readonly sha: string;
+    readonly subject: string;
+    /** Note files the commit touched, recorded so the table can be re-checked. */
+    readonly noteFiles: number;
+};
+
+/**
+ * The complete exclusion set for `my-studies`, as an explicit list.
+ *
+ * **Never replace this with a file-count threshold.** Real study commits touch
+ * more files than most mechanical ones: `9be50a6` (CLM Business Certification
+ * v5) touches 51 note files and `b4add3c` (Advent of Cyber '24) touches 38,
+ * against 6 to 84 here. Any threshold rule would silently discard real dates.
+ *
+ * The last two postdate the spec: story 1 introduced them, so migration-plan.md
+ * still names only the 7 below them.
+ */
+export const BULK_COMMITS: readonly BulkCommit[] = [
+    { sha: '2409228', subject: 'Apply the Prettier and markdownlint pass', noteFiles: 34 },
+    { sha: 'a6e6893', subject: 'Renormalize line endings to LF', noteFiles: 19 },
+    { sha: '5e13fde', subject: 'Drop stalled and outdated course notes', noteFiles: 43 },
+    { sha: '3159172', subject: 'chore(migration): Veeva Learning Lint', noteFiles: 84 },
+    { sha: '6b92425', subject: 'chore(migration): Udemy Lint', noteFiles: 15 },
+    { sha: 'e6cbbeb', subject: 'chore(migration): TryHackMe Lint', noteFiles: 47 },
+    { sha: '3bc06ff', subject: 'chore(migration): Platzi Lint', noteFiles: 6 },
+    { sha: '1b3c2de', subject: 'chore(migration): Books Lint', noteFiles: 21 },
+    { sha: 'acfe6cc', subject: 'chore(migration): Midu.dev Lint', noteFiles: 7 },
+];
+
+export type DeclaredDates = {
+    readonly started: string;
+    readonly finished: string;
+};
+
+/**
+ * Dates no derivation can reach, declared by the author rather than inferred.
+ *
+ * Consulted only after both derivations have come up empty, so an entry here
+ * can never override a date the corpus actually carries.
+ *
+ * `veeva/start-here-multichannel-certification` is the whole table: its README
+ * is five lines of terms and conditions, it owns no notes and links none, and
+ * its only commits are excluded above. The other four certifications that carry
+ * no notes of their own are dated from the notes they link. The author placed
+ * this one on the day the first certification referencing it begins.
+ */
+export const INDEX_DATES: Readonly<Record<string, DeclaredDates>> = {
+    'veeva/start-here-multichannel-certification': {
+        started: '2024-10-15',
+        finished: '2024-10-15',
+    },
+};
 
 export type RepoConfig = {
     /** Absolute POSIX path to the notes checkout. */

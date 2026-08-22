@@ -1,10 +1,10 @@
 /**
  * What counts as a note, and what counts as a study directory.
  *
- * Both answers are load-bearing counts rather than incidental detail: the
- * contract says the vault holds 121 notes, and the code repo holds 5 resource
- * directories. A walk that admits one extra file makes every number in the
- * contract wrong.
+ * Both answers are load-bearing rather than incidental detail: every count the
+ * contract quotes comes out of this walk, and the code repo holds 5 resource
+ * directories. A walk that admits one extra file makes every one of those
+ * numbers wrong, which is why the counts here are measured and never assumed.
  */
 
 import assert from 'node:assert/strict';

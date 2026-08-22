@@ -93,7 +93,12 @@ export const FIELDS: readonly FieldSpec[] = [
         name: 'url',
         type: 'string',
         requirement: 'conditional',
-        condition: 'always on kind: index; optional on kind: note; always when source is external',
+        // Narrowed from "always on kind: index". No index README in the corpus
+        // carries a URL, and 13 of the 16 are Veeva certifications behind a
+        // corporate login with no public page, so the rule could not be
+        // satisfied by the material it governs. An `external` resource is
+        // defined by having a URL, so there it stays required.
+        condition: 'always when source is external; optional otherwise',
         kinds: RESOURCE_KINDS,
         notes: 'Canonical URL of the course, room, or book. Recorded, never fetched.',
     },

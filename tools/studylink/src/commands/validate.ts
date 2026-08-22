@@ -279,7 +279,11 @@ function checkRequiredFields(entry: LoadedNote, out: Finding[]): void {
     for (const name of ['kind', 'status', 'tags', 'source', 'slug', 'code']) {
         requireField(name);
     }
-    if (entry.kind === 'index' || entry.source === 'external') {
+    // `url` is required only for an external resource, which is defined by
+    // having one. It used to be required on every `kind: index` too, but no
+    // index README in the corpus carries a URL and most of them are behind a
+    // corporate login, so that half of the rule governed nothing it could reach.
+    if (entry.source === 'external') {
         requireField('url');
     }
 }

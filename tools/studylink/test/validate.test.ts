@@ -200,8 +200,8 @@ describe('matrix: the shapes validate has to get right', () => {
     });
 
     it('a vault with no frontmatter anywhere: one rule 1 violation per file', () => {
-        // The live corpus is exactly this shape until story 6 writes frontmatter,
-        // where the same behavior is 121 files and 121 violations.
+        // The live corpus is exactly this shape until story 6 writes
+        // frontmatter, where the same behavior is one violation per note.
         const vault = newVault();
         for (const name of ['README.md', 'Books/README.md', 'Books/Chapter 1.md']) {
             writeNote(vault, name, '# Heading\n\nProse.\n');
@@ -228,6 +228,32 @@ describe('matrix: the shapes validate has to get right', () => {
 
         assert.equal(violation?.message, 'required field missing: tags');
         assert.equal(violation?.line, 1, 'an absent field has no line of its own');
+    });
+
+    it('an index without a url conforms', () => {
+        // Narrowed from "required on every kind: index". No index README in the
+        // corpus carries a URL and most are behind a corporate login, so the
+        // rule governed nothing it could reach and migration could not satisfy
+        // it without inventing one.
+        const vault = conformingVault();
+        const { url, ...withoutUrl } = INDEX;
+        void url;
+        writeNote(vault, 'TryHackMe/Advent of Cyber 2024/README.md', note(withoutUrl));
+
+        assert.deepEqual(check(vault).violations, []);
+    });
+
+    it('an external resource without a url still fails', () => {
+        // An external resource is defined by having one, so that half of the
+        // rule stays.
+        const vault = conformingVault();
+        writeNote(
+            vault,
+            'TryHackMe/Advent of Cyber 2024/Day 11.md',
+            note({ ...LEAF, source: 'external', slug: 'external/advent-of-cyber-2024/day-11' })
+        );
+
+        assert.equal(find(check(vault).violations, 'SL01')?.message, 'required field missing: url');
     });
 
     it('platform reduced set: a slug on a platform file fails rule 1, not rule 5', () => {

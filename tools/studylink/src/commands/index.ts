@@ -28,7 +28,12 @@ import {
     spliceLines,
     type ListItem,
 } from '../blocks.ts';
-import { NOTES_FILE_URL_BASE, toAbsolutePosix, type RepoConfig } from '../config.ts';
+import {
+    encodeRepoPath,
+    NOTES_FILE_URL_BASE,
+    toAbsolutePosix,
+    type RepoConfig,
+} from '../config.ts';
 import { entryFor, parseFrontmatter, splitLines } from '../frontmatter.ts';
 import {
     exists,
@@ -379,8 +384,12 @@ function labelFor(notePath: string): string {
 /**
  * The absolute path a list item links to, or null when it links nowhere on
  * disk: an anchor, an external URL, a wikilink, or a line that is not a link.
+ *
+ * Exported because `migrate` dates an index with no notes of its own from the
+ * notes it links, and the two commands have to agree about what an authored
+ * entry points at.
  */
-function linkTarget(item: ListItem, dir: string): string | null {
+export function linkTarget(item: ListItem, dir: string): string | null {
     const destination = item.link?.destination;
     if (destination === undefined || !isRelativeTarget(destination)) {
         return null;
@@ -556,19 +565,9 @@ function planReverseBlock(
     };
 }
 
-/**
- * The canonical `github.com` URL of a note.
- *
- * `encodeURI` leaves `(`, `)`, `#` and `?` alone, and one of the four Midu.dev
- * notes that carry code is `Lo último de JavaScript (ES2023 & ES2024).md`, whose
- * parentheses would close the markdown link early.
- */
+/** The canonical `github.com` URL of a note. */
 function noteUrl(relativePath: string): string {
-    const encoded = encodeURI(relativePath).replace(
-        /[()#?]/g,
-        (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
-    );
-    return `${NOTES_FILE_URL_BASE}${encoded}`;
+    return `${NOTES_FILE_URL_BASE}${encodeRepoPath(relativePath)}`;
 }
 
 /** Take a block out along with the blank line that separated it. */

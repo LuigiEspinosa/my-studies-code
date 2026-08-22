@@ -2,8 +2,7 @@
 /**
  * `studylink` entry point: argument parsing, config resolution, exit codes.
  *
- * `validate`, `index` and `status` are wired up; `migrate` is still the shell
- * story 5 fills in. Everything here is the part they share.
+ * All four commands are wired up; everything here is the part they share.
  */
 
 import { readSync, realpathSync } from 'node:fs';
@@ -12,6 +11,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { applyChanges, formatPlan, planIndex } from './commands/index.ts';
+import { formatGaps, formatMigration, planMigration } from './commands/migrate.ts';
 import {
     collectStatus,
     formatStatus,
@@ -248,20 +248,12 @@ function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
     if (parsed.command === 'status') {
         return runStatus(parsed, config, io);
     }
-
-    // The remaining command bodies land in their own stories. Until then a known
-    // command resolves its config, reports that it has no implementation, and
-    // fails operationally rather than pretending to have succeeded.
-    io.stderr(
-        [
-            `studylink ${parsed.command} is not implemented yet.`,
-            `notes: ${config.notesRoot}`,
-            `code:  ${config.codeRoot}`,
-            `stale: ${String(config.staleDays)} days`,
-            '',
-        ].join('\n')
-    );
-    return EXIT_FAILURE;
+    // Exhaustive rather than a fallthrough: `migrate` is the one command that
+    // writes frontmatter, so a fifth command added to COMMANDS and forgotten
+    // here would silently run the migration instead of failing to compile.
+    const migrate: 'migrate' = parsed.command;
+    void migrate;
+    return runMigrate(parsed, config, io);
 }
 
 /**
@@ -414,6 +406,69 @@ export function runStatus(parsed: ParsedArgs, config: RepoConfig, io: Io, ask?: 
 
     io.stdout(formatTriage(outcomes, result.staleDays));
     return EXIT_OK;
+}
+
+/**
+ * Run `migrate` and map its plan to an exit code.
+ *
+ * A gap outranks everything else. A field the tool could not derive means the
+ * block it would write is one `validate` will reject, and writing it anyway
+ * would leave story 6 hand-patching YAML, which the migration plan rules out.
+ * So a gap fails the run in both modes, with or without `--write`: exiting 0 on
+ * a dry run whose output cannot legally be applied would be worse than useless.
+ *
+ * Short of that, a dry run with changes pending is a finding, the way `index`
+ * treats one, and a completed write succeeds.
+ *
+ * Exported for the same reason `runValidate` is: config resolution has already
+ * proved both checkouts exist by the time dispatch happens, so a `VaultError`
+ * cannot be provoked through `run`.
+ */
+export function runMigrate(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
+    const write = parsed.flags.has('--write');
+
+    let result;
+    try {
+        result = planMigration({ config });
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    if (result.gitProblem !== null) {
+        io.stderr(
+            `no commit dates for ${path.posix.basename(config.notesRoot)}: ${result.gitProblem}\n`
+        );
+    }
+    for (const sha of result.unmatchedCommits) {
+        // A table that has drifted from the repository excludes nothing, which
+        // reads exactly like excluding the right thing.
+        io.stderr(`excluded commit ${sha} matched no commit in the notes repo\n`);
+    }
+
+    if (result.gaps.length > 0) {
+        io.stderr(formatGaps(result));
+        return EXIT_FAILURE;
+    }
+
+    try {
+        if (write) {
+            applyChanges(result.changes);
+        }
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    io.stdout(formatMigration(result, write));
+
+    return !write && result.changes.length > 0 ? EXIT_FINDINGS : EXIT_OK;
 }
 
 /**

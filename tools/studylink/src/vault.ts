@@ -15,8 +15,9 @@ import { toFsPath } from './config.ts';
  * Markdown files under the notes root that are not notes.
  *
  * `AGENTS.md` is agent instructions for the repo, not a unit of study, so it
- * carries no frontmatter and never will. Without this the vault measures 122
- * files instead of the 121 the contract counts.
+ * carries no frontmatter and never will. Without this the vault measures one
+ * markdown file more than it holds notes, and `migrate` would write a block
+ * into the instructions themselves.
  */
 export const NOTE_EXCLUSIONS: readonly string[] = ['AGENTS.md'];
 

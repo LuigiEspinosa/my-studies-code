@@ -3,9 +3,8 @@
  *
  * The module is split in two on purpose. `readCommitLog` does the I/O and hands
  * back a plain commit stream; every date derivation is a pure fold over that
- * stream. Story 4 needs only the last date per file, and story 5 adds first
- * dates and drops the bulk reformatting and prune commits, which is a filter
- * between the two halves rather than a change to either.
+ * stream. `withoutCommits` sits between the two halves, so dropping the bulk
+ * reformatting and prune commits is a filter rather than a change to either.
  *
  * Nothing here throws. A missing `git`, a directory that is not a repository,
  * and a repository with no commits all come back as an empty log carrying the
@@ -165,14 +164,16 @@ export function parseCommitLog(text: string): Commit[] {
 }
 
 /**
- * The newest commit date per file.
+ * One date per file, folded by comparison rather than by position.
  *
- * Folded by comparison rather than by taking the first occurrence, because the
- * log is ordered by committer date while the dates recorded are author dates,
- * and a rebase can put the two out of step. Story 5's first-date derivation is
- * the same fold with the comparison reversed.
+ * The log is ordered by committer date while the dates recorded are author
+ * dates, and the March and April 2026 rebase put the two out of step, so the
+ * first commit mentioning a file is not reliably the earliest one.
  */
-export function lastTouchByFile(commits: readonly Commit[]): Map<string, string> {
+function foldByFile(
+    commits: readonly Commit[],
+    beats: (candidate: string, known: string) => boolean
+): Map<string, string> {
     const dates = new Map<string, string>();
 
     for (const commit of commits) {
@@ -181,13 +182,62 @@ export function lastTouchByFile(commits: readonly Commit[]): Map<string, string>
         }
         for (const file of commit.files) {
             const known = dates.get(file);
-            if (known === undefined || commit.date > known) {
+            if (known === undefined || beats(commit.date, known)) {
                 dates.set(file, commit.date);
             }
         }
     }
 
     return dates;
+}
+
+/** The newest commit date per file. Feeds `finished` and every staleness check. */
+export function lastTouchByFile(commits: readonly Commit[]): Map<string, string> {
+    return foldByFile(commits, (candidate, known) => candidate > known);
+}
+
+/** The oldest commit date per file. Feeds `started`. */
+export function firstTouchByFile(commits: readonly Commit[]): Map<string, string> {
+    return foldByFile(commits, (candidate, known) => candidate < known);
+}
+
+/** What `withoutCommits` removed, and what it was asked to remove but never saw. */
+export type FilteredLog = {
+    readonly commits: readonly Commit[];
+    /** Prefixes that matched no commit, so a stale exclusion list cannot go quiet. */
+    readonly unmatched: readonly string[];
+};
+
+/**
+ * Drop the commits whose SHA starts with one of `prefixes`.
+ *
+ * A pure filter between the reader and the date folds, which is the whole
+ * reason `readCommitLog` hands back a stream rather than a map. Prefixes are
+ * matched rather than full SHAs because the exclusion table is written the way
+ * `git log --oneline` prints them, and a 7-character prefix is unambiguous
+ * across a history this size.
+ *
+ * An unmatched prefix is reported rather than ignored: it means the list has
+ * drifted from the repository, and silently excluding nothing looks identical
+ * to excluding the right thing.
+ */
+export function withoutCommits(
+    commits: readonly Commit[],
+    prefixes: readonly string[]
+): FilteredLog {
+    const seen = new Set<string>();
+    const kept = commits.filter((commit) => {
+        // Every matching prefix is recorded, not just the first: two prefixes
+        // that name the same commit would otherwise leave the second reported
+        // as stale when it is simply redundant.
+        const hits = prefixes.filter((prefix) => prefix !== '' && commit.sha.startsWith(prefix));
+        for (const hit of hits) {
+            seen.add(hit);
+        }
+        return hits.length === 0;
+    });
+
+    return { commits: kept, unmatched: prefixes.filter((prefix) => !seen.has(prefix)) };
 }
 
 /**

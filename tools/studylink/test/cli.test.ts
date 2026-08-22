@@ -2,9 +2,10 @@
  * The CLI shell: dispatch, the argument guards, and the real entry point.
  *
  * The I/O and edge-case matrix is covered in config.test.ts. What lives here is
- * everything else the shell owes stories 2 to 5: that an unimplemented command
- * fails rather than reporting success, that the flags it accepts are validated,
- * and that running the module as a program actually produces those exit codes.
+ * everything else the shell owes: that each command routes to its own
+ * implementation rather than to another one, that the flags it accepts are
+ * validated, that the resolved config reaches the command, and that running the
+ * module as a program really produces those exit codes.
  */
 
 import assert from 'node:assert/strict';
@@ -61,24 +62,31 @@ function captureIo(cwd: string): Io & { out: string[]; err: string[] } {
     };
 }
 
-/** The commands still waiting for their own story. */
-const IMPLEMENTED = ['validate', 'index', 'status'];
-const UNIMPLEMENTED = COMMANDS.filter((command) => !IMPLEMENTED.includes(command));
-
 describe('dispatch', () => {
-    it('fails every command that has no implementation yet', () => {
-        // Guards the mutation that turns this into EXIT_OK, which would let an
-        // unbuilt command report success to a caller or a CI job.
-        assert.deepEqual(UNIMPLEMENTED, ['migrate']);
+    /** What each command prints that no other command does. */
+    const SIGNATURES: Record<string, RegExp> = {
+        validate: /files checked/,
+        index: /indexes: .* blocks seeded/,
+        status: /coverage: no resources/,
+        migrate: /notes: .* platform/,
+    };
 
-        for (const command of UNIMPLEMENTED) {
+    it('routes every command to its own implementation', () => {
+        // Asserting a per-command signature rather than a shared exit code: the
+        // stub is gone, so a command added to COMMANDS and forgotten in dispatch
+        // would fall through to migrate, and every command exits 0 on an empty
+        // vault. Only the output tells them apart. `dispatch` also pins this at
+        // compile time; this is the runtime half.
+        for (const command of COMMANDS) {
             const io = captureIo(commonParent);
             const code = run([command], io);
 
-            assert.equal(code, EXIT_FAILURE, `${command} must not report success`);
-            assert.match(io.err.join(''), /is not implemented yet/);
-            assert.match(io.err.join(''), new RegExp(`studylink ${command} `));
-            assert.equal(io.out.length, 0, `${command} must not write to stdout`);
+            assert.equal(code, EXIT_OK, `${command} has nothing to do on an empty vault`);
+            assert.match(
+                io.out.join(''),
+                SIGNATURES[command] ?? /$^/,
+                `${command} ran something else`
+            );
         }
     });
 
@@ -142,14 +150,25 @@ describe('dispatch', () => {
         assert.throws(() => parseArgs(['validate', '--stale', 'nope']), UsageError);
     });
 
-    it('reports the roots and the threshold it resolved', () => {
-        const io = captureIo(commonParent);
-        run(['migrate'], io);
-        const err = io.err.join('');
+    it('carries every resolved root and the threshold as far as the commands that use them', () => {
+        // Guards the mutation that drops a piece of the config wiring in run().
+        // Each of the three is observed through a different command, because no
+        // one command reports all of them any more.
+        const notes = captureIo(commonParent);
+        run(['migrate'], notes);
+        assert.match(notes.err.join(''), new RegExp(`no commit dates for ${NOTES_DIR_NAME}`));
 
-        assert.match(err, new RegExp(`notes: .*${NOTES_DIR_NAME}`));
-        assert.match(err, new RegExp(`code: .*${CODE_DIR_NAME}`));
-        assert.match(err, new RegExp(`stale: ${String(DEFAULT_STALE_DAYS)} days`));
+        const code = captureIo(commonParent);
+        run(['index'], code);
+        assert.match(code.out.join(''), /0 code directories/);
+        assert.equal(
+            run(['index', '--code', path.join(commonParent, 'nope')], captureIo(commonParent)),
+            EXIT_FAILURE
+        );
+
+        const stale = captureIo(commonParent);
+        assert.equal(run(['status', '--stale', '0'], stale), EXIT_FAILURE);
+        assert.match(stale.err.join(''), /--stale expects a positive whole number/);
     });
 
     it('routes status to its implementation, and reports an empty vault', () => {
@@ -270,13 +289,13 @@ describe('entry point', () => {
         // Guards the mutation that makes isEntryPoint() return false: the
         // in-process tests stay green while the real CLI does nothing and
         // exits 0.
-        const result = spawnSync(process.execPath, [ENTRY, 'migrate'], {
+        const result = spawnSync(process.execPath, [ENTRY, 'bogus'], {
             cwd: commonParent,
             encoding: 'utf8',
         });
 
         assert.equal(result.status, EXIT_FAILURE, `stderr was: ${result.stderr}`);
-        assert.match(result.stderr, /studylink migrate is not implemented yet/);
+        assert.match(result.stderr, /Unknown command: bogus/);
         assert.equal(result.stdout, '');
     });
 

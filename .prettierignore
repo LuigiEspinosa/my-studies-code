@@ -1,0 +1,18 @@
+# Dependencies and build output.
+node_modules/
+dist/
+build/
+.angular/
+
+# Generated lockfiles. npm and pnpm rewrite these on the next install, so
+# formatting them would break format:check with no code change behind it.
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Vendored course code. Everything under these two trees is the code written
+# while taking the lessons, including 8 nested sub-projects that carry their
+# own prettier and eslint configs and 3 deliberately semicolon-free Vue lesson
+# sources. It stays byte-identical to what the lessons taught.
+Books/
+Midu.dev/

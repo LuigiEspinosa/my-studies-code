@@ -1,0 +1,21 @@
+{
+    "arrowParens": "always",
+    "singleQuote": true,
+    "jsxSingleQuote": true,
+    "useTabs": false,
+    "tabWidth": 4,
+    "semi": true,
+    "endOfLine": "lf",
+    "proseWrap": "preserve",
+    "trailingComma": "es5",
+    "printWidth": 100,
+    "embeddedLanguageFormatting": "off",
+    "overrides": [
+        {
+            "files": "*.md",
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
+}

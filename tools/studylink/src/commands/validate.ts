@@ -22,6 +22,7 @@ import {
     type Frontmatter,
     type FrontmatterValue,
 } from '../frontmatter.ts';
+import { daysSince } from '../git.ts';
 import {
     FIELDS,
     isKind,
@@ -97,8 +98,11 @@ export type ValidateResult = {
 /**
  * Last commit date touching a note, as `YYYY-MM-DD`, or null when unknown.
  *
- * Story 4 supplies this from git. Until then the CLI passes a provider that
- * always returns null, so SLW2 has nothing to fire on outside a fixture.
+ * Supplied by `git.ts` through the CLI. It is a function rather than a map
+ * because an index README's date is the newest commit anywhere under it, not
+ * the date of its own file: a resource whose units are being written is not
+ * stalled, however long its README has sat still. `studylink status` measures
+ * the same way, and the two have to agree.
  */
 export type LastTouch = (relativePath: string) => string | null;
 
@@ -603,8 +607,13 @@ function warnCoverage(entry: LoadedNote, notes: readonly NoteFile[], out: Findin
     }
 }
 
-/** Leaf notes sitting beside an index README, which is its coverage numerator. */
-function unitsWritten(index: NoteFile, notes: readonly NoteFile[]): number {
+/**
+ * Leaf notes sitting beside an index README, which is its coverage numerator.
+ *
+ * Exported because `status` reports the same coverage fraction SLW1 warns on,
+ * and two definitions of "units written" would eventually disagree.
+ */
+export function unitsWritten(index: NoteFile, notes: readonly NoteFile[]): number {
     const dir = containingDir(index.relativePath);
     return notes.filter(
         (note) =>
@@ -627,7 +636,7 @@ function warnStale(
         return;
     }
 
-    const days = daysBetween(touched, options.now ?? new Date());
+    const days = daysSince(touched, options.now ?? new Date());
     if (days <= config.staleDays) {
         return;
     }
@@ -716,14 +725,6 @@ function isVaultRoot(entry: LoadedNote): boolean {
 function containingDir(posixPath: string): string {
     const cut = posixPath.lastIndexOf('/');
     return cut === -1 ? '' : posixPath.slice(0, cut);
-}
-
-/** Whole days from `date` (a `YYYY-MM-DD` string) to `now`, never negative. */
-function daysBetween(date: string, now: Date): number {
-    const [year, month, day] = date.split('-').map(Number);
-    const then = Date.UTC(year ?? 0, (month ?? 1) - 1, day ?? 1);
-    const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    return Math.max(0, Math.round((today - then) / 86_400_000));
 }
 
 function finding(entry: LoadedNote, line: number, rule: string, message: string): Finding {

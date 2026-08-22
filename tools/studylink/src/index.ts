@@ -2,19 +2,28 @@
 /**
  * `studylink` entry point: argument parsing, config resolution, exit codes.
  *
- * `validate` is wired up; `index`, `status` and `migrate` are still the shell
- * their own stories fill in. Everything here is the part they share.
+ * `validate`, `index` and `status` are wired up; `migrate` is still the shell
+ * story 5 fills in. Everything here is the part they share.
  */
 
-import { realpathSync } from 'node:fs';
+import { readSync, realpathSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 import { applyChanges, formatPlan, planIndex } from './commands/index.ts';
+import {
+    collectStatus,
+    formatStatus,
+    formatTriage,
+    triageStalled,
+    type Ask,
+    type TriageOutcome,
+} from './commands/status.ts';
 import { formatJson, formatText, validateVault } from './commands/validate.ts';
 import { ConfigError, DEFAULT_STALE_DAYS, resolveConfig, type RepoConfig } from './config.ts';
-import { VaultError } from './vault.ts';
+import { lastTouchByFile, lastTouchUnderDir, readCommitLog } from './git.ts';
+import { isIndexFile, VaultError } from './vault.ts';
 
 /** Everything conformed, or the report ran. */
 export const EXIT_OK = 0;
@@ -59,7 +68,7 @@ Usage:
 Commands:
   validate [--json]      Check every note against the frontmatter contract
   index [--write]        Regenerate the link list inside each managed block
-  status [--stale <n>]   Report study state and flag stalled resources
+  status [--triage]      Report study state and flag stalled resources
   migrate [--write]      One-shot migration of the existing corpus
 
 Options:
@@ -236,6 +245,9 @@ function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
     if (parsed.command === 'index') {
         return runIndex(parsed, config, io);
     }
+    if (parsed.command === 'status') {
+        return runStatus(parsed, config, io);
+    }
 
     // The remaining command bodies land in their own stories. Until then a known
     // command resolves its config, reports that it has no implementation, and
@@ -265,11 +277,18 @@ function dispatch(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
 export function runValidate(parsed: ParsedArgs, config: RepoConfig, io: Io): number {
     let result;
     try {
+        const log = readCommitLog(config.notesRoot);
+        // SLW2 is advisory, so an unreadable log degrades to no dates and
+        // therefore no stalled warnings rather than failing the run. It is still
+        // said out loud, because silently never warning looks like conformance.
+        if (log.unavailable !== null) {
+            io.stderr(
+                `no commit dates for ${path.posix.basename(config.notesRoot)}: ${log.unavailable}; the stalled warning cannot fire\n`
+            );
+        }
         result = validateVault({
             config,
-            // Story 4 replaces this with git.ts. Until commit dates exist the
-            // stalled warning has nothing to measure, so it never fires.
-            lastTouch: () => null,
+            lastTouch: resourceLastTouch(lastTouchByFile(log.commits)),
         });
     } catch (error) {
         if (error instanceof VaultError) {
@@ -316,6 +335,149 @@ export function runIndex(parsed: ParsedArgs, config: RepoConfig, io: Io): number
     io.stdout(formatPlan(result, write));
 
     return !write && result.changes.length > 0 ? EXIT_FINDINGS : EXIT_OK;
+}
+
+/**
+ * Last-touch dates keyed the way SLW2 asks for them, one note at a time.
+ *
+ * An index README does not change when a chapter beside it is written, so
+ * asking only about the README's own file would report a resource with fresh
+ * units as stalled. That is the same false alarm `status` avoids by rolling the
+ * date up over a resource's subtree, and the two must agree: they answer the
+ * same question against the same `--stale` value.
+ *
+ * Exported so that agreement can be tested directly, rather than only through a
+ * checkout with a real history behind it.
+ */
+export function resourceLastTouch(
+    dates: ReadonlyMap<string, string>
+): (relative: string) => string | null {
+    return (relative) => {
+        if (!isIndexFile(path.posix.basename(relative))) {
+            return dates.get(relative) ?? null;
+        }
+        const dir = path.posix.dirname(relative);
+        return lastTouchUnderDir(dates, dir === '.' ? '' : dir);
+    };
+}
+
+/**
+ * Run `status`, and under `--triage` walk what it found stalled.
+ *
+ * The report itself never fails on what it finds: no git, no frontmatter, and
+ * every resource stale are all things it reports rather than things it fails
+ * on. Two things still exit 2. A checkout it cannot read at all is operational
+ * rather than reportable, and so is a `--triage` note it cannot write, because
+ * exiting 0 there would throw away the human's answer without saying so.
+ *
+ * `ask` is a test seam: left out, questions go to the terminal. It is a
+ * parameter rather than part of `Io` because it is the only command that reads.
+ *
+ * Exported for the same reason `runValidate` is: config resolution has already
+ * proved both checkouts exist by the time dispatch happens, so a `VaultError`
+ * cannot be provoked through `run`.
+ */
+export function runStatus(parsed: ParsedArgs, config: RepoConfig, io: Io, ask?: Ask): number {
+    let result;
+    try {
+        result = collectStatus({ config });
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    for (const problem of result.gitProblems) {
+        io.stderr(`no commit dates for ${problem}; last touch reported as unknown\n`);
+    }
+    io.stdout(formatStatus(result));
+
+    if (!parsed.flags.has('--triage')) {
+        return EXIT_OK;
+    }
+
+    // Filled as the walk goes, so a note that fails halfway still leaves the
+    // human a record of the answers already written to disk.
+    const outcomes: TriageOutcome[] = [];
+    try {
+        triageStalled(result, ask ?? promptThrough(io), outcomes);
+    } catch (error) {
+        if (error instanceof VaultError) {
+            io.stdout(formatTriage(outcomes, result.staleDays));
+            io.stderr(`${error.message}\n`);
+            return EXIT_FAILURE;
+        }
+        throw error;
+    }
+
+    io.stdout(formatTriage(outcomes, result.staleDays));
+    return EXIT_OK;
+}
+
+/**
+ * Write the question, then read one line back.
+ *
+ * The question goes to stderr, not stdout, so that redirecting the report to a
+ * file still puts the prompts in front of the human answering them.
+ */
+function promptThrough(io: Io): Ask {
+    return (question) => {
+        io.stderr(question);
+        return readLineSync();
+    };
+}
+
+/**
+ * Read one line from stdin, synchronously, or null at end of input.
+ *
+ * Synchronous because `run` is, and making the whole CLI async so that one
+ * interactive flag can await a prompt would change the shape of every command.
+ * Bytes are collected rather than decoded one at a time, so a multi-byte
+ * character in an answer survives.
+ */
+function readLineSync(): string | null {
+    const byte = Buffer.alloc(1);
+    const bytes: number[] = [];
+
+    for (;;) {
+        let read: number;
+        try {
+            read = readSync(0, byte, 0, 1, null);
+        } catch (error) {
+            const code = (error as NodeJS.ErrnoException).code;
+            // A non-blocking stdin has nothing ready yet; anything else is the
+            // terminal telling us there is no more input.
+            if (code === 'EAGAIN') {
+                pause();
+                continue;
+            }
+            return bytes.length === 0 ? null : decodeLine(bytes);
+        }
+        if (read === 0) {
+            return bytes.length === 0 ? null : decodeLine(bytes);
+        }
+        if (byte[0] === 0x0a) {
+            return decodeLine(bytes);
+        }
+        bytes.push(byte[0] ?? 0);
+    }
+}
+
+/**
+ * Block for a few milliseconds.
+ *
+ * Retrying `EAGAIN` in a bare loop spins a core flat out for as long as the
+ * human takes to answer, and there is no synchronous sleep in Node other than
+ * waiting on an atomic nobody will ever notify.
+ */
+function pause(): void {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+}
+
+function decodeLine(bytes: readonly number[]): string {
+    return Buffer.from(bytes).toString('utf8').replace(/\r$/, '');
 }
 
 function isEntryPoint(): boolean {

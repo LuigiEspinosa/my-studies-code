@@ -10,9 +10,11 @@
  */
 
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import process from 'node:process';
 import { after, before, describe, it } from 'node:test';
 
 import {
@@ -30,8 +32,10 @@ import {
     toPosix,
     type RepoConfig,
 } from '../src/config.ts';
-import { EXIT_FAILURE, runValidate, type Io } from '../src/index.ts';
+import { EXIT_FAILURE, EXIT_OK, resourceLastTouch, runValidate, type Io } from '../src/index.ts';
 import { readNote, VaultError } from '../src/vault.ts';
+
+const HAS_GIT = spawnSync('git', ['--version'], { encoding: 'utf8' }).status === 0;
 
 let fixtureRoot: string;
 
@@ -73,6 +77,41 @@ function makeCodeDir(vault: Vault, relativePath: string): void {
 
 function configFor(vault: Vault, staleDays = DEFAULT_STALE_DAYS): RepoConfig {
     return { notesRoot: vault.notesRoot, codeRoot: vault.codeRoot, staleDays };
+}
+
+/** Put the notes checkout under git, everything committed `days` ago. */
+function commitAllAt(vault: Vault, days: number): void {
+    const root = path.normalize(vault.notesRoot);
+    const date = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
+    const stamp = `${date}T12:00:00+0000`;
+    const git = (args: readonly string[], env: Record<string, string> = {}): void => {
+        const result = spawnSync('git', [...args], {
+            cwd: root,
+            encoding: 'utf8',
+            env: { ...process.env, ...env },
+        });
+        if (result.status !== 0) {
+            throw new Error(`git ${args.join(' ')} failed: ${result.stderr}`);
+        }
+    };
+
+    git(['init', '-q', '-b', 'main']);
+    git(['add', '-A']);
+    git(
+        [
+            '-c',
+            'user.name=studylink test',
+            '-c',
+            'user.email=test@example.com',
+            '-c',
+            'commit.gpgsign=false',
+            'commit',
+            '-q',
+            '-m',
+            date,
+        ],
+        { GIT_AUTHOR_DATE: stamp, GIT_COMMITTER_DATE: stamp }
+    );
 }
 
 /** Build a frontmatter block plus a one-line body, in field order. */
@@ -321,6 +360,32 @@ describe('matrix: the shapes validate has to get right', () => {
         assert.deepEqual(result.warnings, []);
     });
 
+    it('active index whose own file is old but whose units are fresh: no warning', () => {
+        // SLW2 and the STALE marker in `studylink status` answer the same
+        // question at the same threshold, so they have to measure the same way.
+        // An index README does not change when a chapter beside it is written.
+        const vault = conformingVault();
+        const { finished, ...active } = INDEX;
+        void finished;
+        writeNote(
+            vault,
+            'TryHackMe/Advent of Cyber 2024/README.md',
+            note({ ...active, status: 'active' })
+        );
+
+        const result = check(vault, {
+            lastTouch: resourceLastTouch(
+                new Map([
+                    ['TryHackMe/Advent of Cyber 2024/README.md', '2026-01-01'],
+                    ['TryHackMe/Advent of Cyber 2024/Day 11.md', '2026-08-10'],
+                ])
+            ),
+            now: new Date('2026-08-21T00:00:00Z'),
+        });
+
+        assert.deepEqual(rules(result.warnings), [], formatText(result, false));
+    });
+
     it('orphan code directory: warns, and leaves the exit code alone', () => {
         const vault = conformingVault();
         makeCodeDir(vault, 'Books/Orphaned Project');
@@ -383,6 +448,43 @@ describe('matrix: the shapes validate has to get right', () => {
 
         assert.equal(violation?.line, 1);
         assert.match(violation?.message ?? '', /never closed/);
+    });
+
+    it('the CLI supplies real commit dates, so SLW2 actually fires', { skip: !HAS_GIT }, () => {
+        // Every other SLW2 case injects its own provider, so all of them stay
+        // green if `runValidate` goes back to handing over `() => null`. This is
+        // the one that reads a real history through the real command.
+        const vault = conformingVault();
+        const { finished, ...active } = LEAF;
+        void finished;
+        writeNote(
+            vault,
+            'TryHackMe/Advent of Cyber 2024/Day 11.md',
+            note({ ...active, status: 'active' })
+        );
+        commitAllAt(vault, 200);
+
+        const io = captureIo(vault.notesRoot);
+        const code = runValidate(
+            { command: 'validate', flags: new Set<string>() },
+            configFor(vault),
+            io
+        );
+
+        assert.equal(code, EXIT_OK, io.err.join(''));
+        assert.match(io.out.join(''), /SLW2/);
+        assert.match(io.out.join(''), /status: active with no commit in \d+ days/);
+    });
+
+    it('says so on stderr when it has no history to measure staleness against', () => {
+        const vault = conformingVault();
+        const io = captureIo(vault.notesRoot);
+
+        runValidate({ command: 'validate', flags: new Set<string>() }, configFor(vault), io);
+
+        // Quietly never warning looks exactly like conformance, which is the
+        // one thing an advisory signal must not be mistaken for.
+        assert.match(io.err.join(''), /no commit dates for .*the stalled warning cannot fire/);
     });
 
     it('unreadable file: VaultError, which the CLI turns into exit 2', () => {

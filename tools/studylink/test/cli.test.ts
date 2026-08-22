@@ -62,13 +62,14 @@ function captureIo(cwd: string): Io & { out: string[]; err: string[] } {
 }
 
 /** The commands still waiting for their own story. */
-const UNIMPLEMENTED = COMMANDS.filter((command) => command !== 'validate' && command !== 'index');
+const IMPLEMENTED = ['validate', 'index', 'status'];
+const UNIMPLEMENTED = COMMANDS.filter((command) => !IMPLEMENTED.includes(command));
 
 describe('dispatch', () => {
     it('fails every command that has no implementation yet', () => {
         // Guards the mutation that turns this into EXIT_OK, which would let an
         // unbuilt command report success to a caller or a CI job.
-        assert.deepEqual(UNIMPLEMENTED, ['status', 'migrate']);
+        assert.deepEqual(UNIMPLEMENTED, ['migrate']);
 
         for (const command of UNIMPLEMENTED) {
             const io = captureIo(commonParent);
@@ -86,8 +87,10 @@ describe('dispatch', () => {
         const code = run(['validate'], io);
 
         assert.equal(code, EXIT_OK, 'an empty vault has nothing to violate');
-        assert.equal(io.err.length, 0);
         assert.match(io.out.join(''), /0 files checked, 0 violations/);
+        // The fixture is not a repository, so there are no dates to measure
+        // staleness against and the command says so rather than staying quiet.
+        assert.match(io.err.join(''), /no commit dates for/);
     });
 
     it('routes index to its implementation, and leaves an empty vault alone', () => {
@@ -139,30 +142,25 @@ describe('dispatch', () => {
         assert.throws(() => parseArgs(['validate', '--stale', 'nope']), UsageError);
     });
 
-    it('reports the roots it resolved', () => {
+    it('reports the roots and the threshold it resolved', () => {
         const io = captureIo(commonParent);
         run(['migrate'], io);
         const err = io.err.join('');
 
         assert.match(err, new RegExp(`notes: .*${NOTES_DIR_NAME}`));
         assert.match(err, new RegExp(`code: .*${CODE_DIR_NAME}`));
+        assert.match(err, new RegExp(`stale: ${String(DEFAULT_STALE_DAYS)} days`));
     });
 
-    it('carries a supplied --stale through to the resolved config', () => {
-        // Guards the mutation that drops the staleDays wiring in run() and
-        // substitutes the default.
+    it('routes status to its implementation, and reports an empty vault', () => {
         const io = captureIo(commonParent);
-        const code = run(['status', '--stale', '7'], io);
+        const code = run(['status'], io);
 
-        assert.equal(code, EXIT_FAILURE);
-        assert.match(io.err.join(''), /stale: 7 days/);
-    });
-
-    it('falls back to the default threshold when --stale is absent', () => {
-        const io = captureIo(commonParent);
-        run(['status'], io);
-
-        assert.match(io.err.join(''), new RegExp(`stale: ${String(DEFAULT_STALE_DAYS)} days`));
+        // Always 0: status is a report, not a gate, and here there is not even
+        // a repository behind the fixture for it to read dates from.
+        assert.equal(code, EXIT_OK);
+        assert.match(io.out.join(''), /active \(0\)/);
+        assert.match(io.out.join(''), /coverage: no resources/);
     });
 
     it('rejects a --stale that is not a positive whole number', () => {
@@ -173,6 +171,19 @@ describe('dispatch', () => {
             assert.equal(code, EXIT_FAILURE, `--stale ${bad} must be rejected`);
             assert.equal(io.out.length, 0);
         }
+    });
+
+    it('carries a supplied --stale as far as config resolution', () => {
+        // Guards the mutation that drops the staleDays wiring in run() and
+        // substitutes the default. A dropped value would never be validated, so
+        // the rejection is what proves it arrived. The threshold's effect on the
+        // report is pinned end to end in status.test.ts, which needs git; this
+        // one holds on a machine without it.
+        const io = captureIo(commonParent);
+
+        assert.equal(run(['status', '--stale', '0'], io), EXIT_FAILURE);
+        assert.match(io.err.join(''), /--stale expects a positive whole number/);
+        assert.equal(run(['status', '--stale', '7'], captureIo(commonParent)), EXIT_OK);
     });
 });
 
@@ -259,13 +270,13 @@ describe('entry point', () => {
         // Guards the mutation that makes isEntryPoint() return false: the
         // in-process tests stay green while the real CLI does nothing and
         // exits 0.
-        const result = spawnSync(process.execPath, [ENTRY, 'status'], {
+        const result = spawnSync(process.execPath, [ENTRY, 'migrate'], {
             cwd: commonParent,
             encoding: 'utf8',
         });
 
         assert.equal(result.status, EXIT_FAILURE, `stderr was: ${result.stderr}`);
-        assert.match(result.stderr, /studylink status is not implemented yet/);
+        assert.match(result.stderr, /studylink migrate is not implemented yet/);
         assert.equal(result.stdout, '');
     });
 

@@ -7,7 +7,7 @@ description: 'File a finished course into the my-studies and my-studies-code rep
 
 ## Purpose
 
-Take a finished course and land it in both repos so that `studylink validate` passes, the indexes regenerate cleanly, and the commit matches every convention already in place. The user should be able to say "I finished this course <url>, notes are in <folder>, code is in <folder>" and get a reviewed, committed result.
+Take a finished course and land it in both repos so that `studylink validate` passes, the indexes regenerate cleanly, and the commit matches every convention already in place. The user should be able to say "I finished this course `<url>`, notes are in `<folder>`, code is in `<folder>`" and get a reviewed, committed result.
 
 ## Inputs
 

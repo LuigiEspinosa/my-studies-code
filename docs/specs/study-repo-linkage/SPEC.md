@@ -31,8 +31,8 @@ The timing is deliberate. The corpus was just pruned from 172 notes across 10 pl
   - **success:** For every note with a non-empty `code:` list, each entry resolves to an existing directory in the sibling repo; `studylink validate` exits non-zero and names the note when an entry dangles.
 
 - **CAP-3**
-  - **intent:** Index READMEs derive their link lists from note frontmatter, so an index cannot drift from what is actually on disk.
-  - **success:** Running the generator twice produces no diff on the second run; all hand-written prose in the prose-bearing READMEs survives byte-for-byte; and the three indexes repaired by hand during the prune regenerate to the same content.
+  - **intent:** Index link lists live in managed blocks the tool keeps consistent with what is on disk, so an index cannot silently drift.
+  - **success:** Running the generator twice produces no diff on the second run; all hand-written prose and authored section structure survives byte-for-byte; and the three indexes repaired by hand during the prune regenerate to the same content.
 
 - **CAP-4**
   - **intent:** The author can see which resources are in progress and which have stalled, so returning after a gap does not require a tree walk.
@@ -57,6 +57,9 @@ The timing is deliberate. The corpus was just pruned from 172 notes across 10 pl
 - **Completion is never inferred from dates.** Timestamps show only that nothing is happening, never whether that is because the work finished or was abandoned. `done` and `dropped` are human-authored; `stalled` is derived and is never a stored value.
 - **Coverage is advisory, never a gate.** Where an outline exists, `validate` warns when `status: done` coexists with incomplete coverage, but the human call wins. Advent of Cyber 2024 is `done` with Day 24 absent, and that is correct.
 - Index generation writes into a delimited managed block and never rewrites a whole file, because several index READMEs carry hand-written prose that whole-file generation would destroy.
+- Managed-block membership and link text are **seeded** from the authored indexes and never derived from folder contents or note titles. 11 of the 22 indexes link notes owned by other resources, and index labels are not reconstructible: Advent of Cyber Day 11 is labelled with a trailing `!` its `# H1` does not carry.
+- Ordering inside a seeded block is frozen at seed time. Sorting is ruled out because 11 Veeva blocks are in teaching order and an alphabetical pass would sort Advent of Cyber to Day 1, Day 10, Day 11, Day 2.
+- Structural indexes above the resource level (the vault root and the 5 platform READMEs) carry no `slug`. They are `kind: platform` with a reduced field set; see [frontmatter-schema.md](frontmatter-schema.md).
 - `code:` is a list, never a scalar. One note can map to several sibling directories.
 - Unresolved `[[wikilinks]]` are intentional backlog markers for planned notes. Validation reports them as planned and never fails on them.
 - Cross-repo references are relative paths assuming sibling checkout under a common parent. Frontmatter additionally carries the canonical GitHub URL, because relative cross-repo links do not resolve on github.com.

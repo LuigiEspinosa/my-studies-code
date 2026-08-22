@@ -1,0 +1,208 @@
+- id: "1"
+  title: Tool skeleton plus lint wiring
+  description: >-
+    Stand up studylink at my-studies-code/tools/studylink with repo discovery,
+    the frontmatter schema module, and a root package.json in both repos.
+    Satisfies CAP-7 by making the dead markdownlint and prettier config runnable.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Both repos get a root package.json; the one in my-studies-code is the
+    manifest the tool itself needs, so do not create a second under
+    tools/studylink. Delete my-studies/eslint.config.mjs, which sets
+    ignores ['**/*'] and is a complete no-op, and my-studies-code/package-lock.json,
+    which is 100 bytes with no manifest.
+
+    my-studies-code has no lint configuration at all, so author both
+    .markdownlint.json and a prettier config there; only my-studies has them
+    today. Use .prettierrc.json in the code repo rather than copying the notes
+    repo's .prettierrc.js, which is CommonJS and breaks under a type: module
+    manifest.
+
+    Settle line endings in this story. Set endOfLine to lf in both prettier
+    configs, add a .gitattributes to each repo carrying the rule
+    text=auto eol=lf for all paths, and run git add --renormalize. core.autocrlf
+    is true and neither repo has a .gitattributes today, so the working tree is
+    uniformly CRLF on Windows while the object database is mixed: 22 stored
+    files in my-studies and 264 in my-studies-code are CRLF. The existing
+    endOfLine crlf therefore passes on Windows by accident and fails on every
+    file under WSL2, which the tool must also support. The renormalization is a
+    line-endings-only rewrite and must complete here, before story 6 runs
+    migrate --write, so the migration diff stays reviewable.
+
+    Repo discovery walks up from the working directory to a parent holding both
+    my-studies/ and my-studies-code/, exits 2 with a message naming what it
+    looked for, and is overridable by --notes and --code. Normalize all internal
+    paths to POSIX separators and convert only at filesystem boundaries; this is
+    what makes Windows and WSL2 behave identically.
+
+    schema.ts encodes kind with three values: platform, index, note. A platform
+    file carries a reduced required-field set with no slug, started or finished.
+    See the Kinds table in frontmatter-schema.md.
+
+    Configure markdownlint to ignore content between <!-- studylink:begin --> and
+    <!-- studylink:end -->, or the generator and the linter will fight over list
+    formatting. No markers exist yet, so this is set blind and first exercised in
+    story 3.
+
+    Both repos must pass npm run lint and npm run format:check on a clean tree
+    before any frontmatter exists, so a later failure is attributable to
+    migration. The corpus has never been linted, so expect that pass to require a
+    formatting diff of its own. Land it in this story so it cannot leak into
+    story 6 and muddy the migration diff.
+
+- id: "2"
+  title: studylink validate
+  description: >-
+    Implement the 11 frontmatter rules, the three warnings that stay outside the
+    exit code, and cross-repo path resolution for code entries. Covers CAP-1 and
+    CAP-2.
+  spec_checkpoint: true
+  done_checkpoint: false
+  invoke_dev_with: >-
+    There are 11 rules, not 10. cli-contract.md previously said 10 and was wrong;
+    frontmatter-schema.md is authoritative.
+
+    Exit 0 when all notes conform, 1 on violations, 2 on operational failure.
+    Violations print as <relative-path>:<line> <rule-id> <message>, grouped by
+    file, with --json and --quiet.
+
+    Three warnings never affect the exit code: status done with coverage below
+    100 percent, status active with no touch inside --stale, and a code-repo
+    directory with no note counterpart. Unresolved [[wikilinks]] are counted and
+    reported as planned notes and never fail.
+
+    Rule 7 resolves each code entry relative to the note's containing directory,
+    so depth varies between a leaf note under a platform folder and one nested in
+    a course folder, and the target must be an existing directory. Rules 3 to 6
+    are skipped for kind: platform.
+
+    No note carries frontmatter until story 6, so this story is fixture-driven.
+    Against the live corpus its correct behavior is 121 failures, which is not a
+    bug. Zero unresolved wikilinks exist in the vault today, so rule 10 needs a
+    fixture too.
+
+- id: "3"
+  title: studylink index
+  description: >-
+    Seed a managed block per authored index section, then maintain those blocks
+    in place, idempotently, and write reverse-link blocks into the mapped code
+    directories. Covers CAP-3.
+  spec_checkpoint: true
+  done_checkpoint: false
+  invoke_dev_with: >-
+    Blocks are seeded, not derived. The first --write wraps each authored
+    section's list in a marker pair, capturing membership, link text and order
+    exactly as they stand. Never regenerate a label from a filename or an H1:
+    Advent of Cyber Day 11 is labelled with a trailing exclamation mark its H1
+    does not carry, so no derivation can reproduce it.
+
+    Of the 22 indexes, 17 carry ## sections, 10 open with an anchor-link table of
+    contents that is not a note list and must never be wrapped, and 11 link notes
+    owned by other resources, so membership is never the folder's contents.
+
+    Inside a seeded block, and nowhere else: drop duplicates keeping the first
+    occurrence, drop entries whose target no longer exists, append entries for
+    notes present on disk but in no block, and carry [[wikilinks]] through
+    unchanged. Order is frozen at seed time. Do not sort.
+
+    Reverse links go into 5 code directories: Books/ASP.NET Core 3 and React and
+    4 under Midu.dev/.
+
+    Prove byte-identical regeneration here against fixture copies of the three
+    hand-repaired indexes, and prove dedup against Midu.dev/README.md, which
+    lists one entry at both line 5 and line 7 and must come out in its current
+    order with the second occurrence gone, not alphabetized. Story 6 proves both
+    against the real vault.
+
+- id: "4"
+  title: studylink status
+  description: >-
+    Report study state from frontmatter plus git last-touch dates, derive
+    staleness at a 30-day default, report coverage, and write chosen statuses
+    back under --triage. Covers CAP-4.
+  spec_checkpoint: true
+  done_checkpoint: false
+  invoke_dev_with: >-
+    git.ts lands in this story with last-commit-date-per-file. Story 5 extends it
+    with first-commit dates and bulk-commit exclusion.
+
+    --stale defaults to 30 days. Exit is always 0; this is a report, not a gate.
+
+    Nothing in the corpus is active, so the interesting path has no live data.
+    Build a fixture vault carrying an active resource touched inside the window
+    and one touched outside it, and prove the STALE flag against that. The only
+    live-corpus check available is the quiet report: 0 active, 21 done, coverage
+    unknown for 21 of 21, 0 planned notes.
+
+    --triage is the only command in the tool that writes status, and it has
+    nothing to triage today, so it is fixture-proven as well.
+
+    stalled is derived and never stored. Do not add it to the status enum.
+
+- id: "5"
+  title: studylink migrate, the command
+  description: >-
+    Build the one-shot migration pass that infers frontmatter for all 121 notes
+    from paths and git history, dry run by default. Covers CAP-5 up to the point
+    of writing.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Dry run by default. Build and exercise this against a scratch copy of the
+    vault, never the real one; the real run is story 6.
+
+    Exclude two commit classes from date derivation: the March 2026
+    chore(migration) Lint reformatting commits, and the 2026-08-21 prune commits
+    5e13fde in notes and 0797c5d in code. Both touched whole platform folders at
+    once and would flatten finished across every note in a platform.
+
+    status is done uniformly across all 21 resources. Inferring completion from
+    dates and the human triage pass were both removed from the design during
+    authoring. Do not reintroduce either.
+
+    tags is an empty list, deliberately not guessed. Auto-tagging from filenames
+    would re-encode the folder structure that tags exist to replace.
+    outline_total is omitted; no surviving resource carries an outline.
+
+    code is populated for books/asp-net-core-3-and-react and 4 of the 5 Midu.dev
+    workshops, since Figma para Devs has no code. Everything else is code: [].
+
+    The root README and the 5 platform READMEs get kind: platform with the
+    reduced field set; the root also has no source. Check accent folding against
+    Introducción, Lo último, Detección, and Formula 1®.
+
+- id: "6"
+  title: Run the migration and open the vault
+  description: >-
+    Execute the migration against both real repos as one reviewable diff, work
+    the verification checklist, generate the indexes, and confirm the vault in
+    Obsidian. Closes CAP-5 and covers CAP-6.
+  spec_checkpoint: true
+  done_checkpoint: true
+  invoke_dev_with: >-
+    Follow the sequence in migration-plan.md and do not reorder it: dry run,
+    review the proposed frontmatter across every platform, migrate --write on a
+    branch, validate exits 0, index --write, index --write again for an empty
+    second diff, then Obsidian.
+
+    Fix violations by correcting the tool and re-running from a clean tree, never
+    by hand-patching a note, so the tool stays the source of truth. One commit
+    per repo, subject line only.
+
+    The three indexes repaired by hand during the prune must regenerate
+    byte-identical: my-studies/README.md, Books/README.md, and
+    TryHackMe/README.md. A diff there means the generator is wrong, not the hand
+    repair.
+
+    All nine boxes of the verification checklist in migration-plan.md are the
+    done criterion, including git diff --name-status showing only M and no note
+    body changing outside its frontmatter and managed blocks.
+
+    Rollback is git reset --hard against a clean tree. No history rewriting, no
+    file moves.
+
+    Tags stay a post-merge incremental human pass and are not part of this story.
+    For CAP-6, open my-studies as an Obsidian vault, confirm every existing
+    relative markdown link resolves, and add a Bases or Dataview view over status
+    and tags.

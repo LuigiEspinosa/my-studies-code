@@ -88,8 +88,23 @@ Present in the repos and non-functional. In scope for this spec as CAP-7:
 - `my-studies/eslint.config.mjs` sets `ignores: ['**/*']`, making it a complete no-op.
 - `my-studies/.prettierrc.js` and `my-studies/.markdownlint.json` exist, but neither repo has a `package.json`, so neither can run.
 - `my-studies-code/package-lock.json` is 100 bytes with no corresponding `package.json`.
+- **`my-studies-code` has no lint configuration at all.** It carries neither `.prettierrc*` nor `.markdownlint.json`. CAP-7 therefore requires authoring both there, not just wiring scripts to existing files as in the notes repo.
+- `my-studies/.prettierrc.js` uses `module.exports`, so it cannot be copied verbatim into a `my-studies-code` whose `package.json` declares `"type": "module"` for the TypeScript tool. A `.prettierrc.json` in the code repo avoids the question.
 
 Building the CLI in Node supplies `my-studies-code` with the manifest it lacks, which is a side benefit of that runtime choice.
+
+## Line endings
+
+`core.autocrlf` is `true` and **neither repo has a `.gitattributes`**, so the working tree is uniformly CRLF on Windows while the object database is mixed:
+
+| Repo | Stored CRLF | Of which markdown | Tracked files |
+| --- | --- | --- | --- |
+| `my-studies` | 22 | 19, all under Veeva Learning | 158 |
+| `my-studies-code` | 264 | 8 | 376 |
+
+`.prettierrc.js` sets `endOfLine: "crlf"`, which passes on Windows only because of the `autocrlf` setting, and fails on every file under WSL2 where the same content checks out as LF. Since SPEC.md constrains the tool to run in both, CAP-7 could not hold in both places as originally written.
+
+Resolved by standardizing on LF: `endOfLine: "lf"`, a `.gitattributes` in each repo pinning `text=auto eol=lf`, and a one-time `git add --renormalize`. The rewrite touches 22 stored files in the notes repo and 264 in the code repo, line endings only. It belongs to CAP-7 and must land before migration, so it stays clear of the single reviewable diff CAP-5 requires.
 
 ## Activity gap
 

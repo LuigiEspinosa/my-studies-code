@@ -6,19 +6,33 @@ The contract every note in `my-studies` carries. Enforced by `studylink validate
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `source` | string enum | yes | Platform key. In use after the prune: `books`, `midudev`, `santander`, `tryhackme`, `veeva`. Reserved for the author's stated return to those platforms: `platzi`. Also valid: `external` for one-off resources. Adding a key is a one-line change; unused keys are harmless. |
+| `source` | string enum | yes, except the vault-root index | Platform key. In use after the prune: `books`, `midudev`, `santander`, `tryhackme`, `veeva`. Reserved for the author's stated return to those platforms: `platzi`. Also valid: `external` for one-off resources. Adding a key is a one-line change; unused keys are harmless. |
 | `url` | string | yes on index notes, optional on leaf notes | Canonical URL of the course, room, or book. `external` requires it on every note. |
-| `slug` | string | yes | Stable cross-repo identifier. See **Slug convention**. Unique across the vault. |
+| `slug` | string | yes, except `kind: platform` | Stable cross-repo identifier. See **Slug convention**. Unique across the vault. |
 | `status` | string enum | yes | One of: `backlog`, `active`, `done`, `dropped`. Human-authored intent. `stalled` is deliberately **not** a value here; see **Status semantics**. |
-| `outline_total` | integer | optional, index notes only | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing. |
-| `started` | date `YYYY-MM-DD` | required when `status` is not `backlog` | First day of study. Migration derives it from the first commit touching the file. |
-| `finished` | date `YYYY-MM-DD` | required when `status` is `done` | Migration derives it from the last commit touching the file. Must not precede `started`. |
+| `outline_total` | integer | optional, `kind: index` only | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing. |
+| `started` | date `YYYY-MM-DD` | required when `status` is not `backlog`, except `kind: platform` | First day of study. Migration derives it from the first commit touching the file. |
+| `finished` | date `YYYY-MM-DD` | required when `status` is `done`, except `kind: platform` | Migration derives it from the last commit touching the file. Must not precede `started`. |
 | `tags` | list of strings | yes, may be empty | Topic axis, lowercase kebab-case. This is the retrieval layer that replaces folder reorganization. |
 | `code` | list of strings | yes, may be empty | Relative paths from the note to sibling-repo directories. See **Cross-repo references**. |
 | `code_url` | string | required when `code` is non-empty | Canonical `github.com/LuigiEspinosa/my-studies-code/tree/main/...` URL, because relative cross-repo links do not resolve on github.com. |
-| `kind` | string enum | yes | `index` or `note`. Index notes own a generated managed block; leaf notes do not. |
+| `kind` | string enum | yes | `platform`, `index`, or `note`. See **Kinds**. |
 
 Unknown keys are permitted and ignored, so Obsidian plugins can add their own without failing validation.
+
+## Kinds
+
+The vault has three tiers, and the middle one is the only tier that maps to a study resource.
+
+| `kind` | Files | What it is |
+| --- | --- | --- |
+| `platform` | 6: the vault root `README.md` and the 5 platform READMEs | Structural navigation above the resource level. Not a study resource, so it carries no `slug`, `started`, or `finished`. The root additionally carries no `source`, because there is no path segment to derive one from. |
+| `index` | 16 resource READMEs | A course, room, book, or certification. Owns `outline_total` where an outline exists. |
+| `note` | 99 leaf notes | A unit of study. The 5 Midu.dev workshops are resources represented by a leaf note rather than a folder, so `kind: note` does not imply "belongs to an index". |
+
+A `platform` file requires only `kind`, `status`, `tags`, and `source` where derivable. It exists in the contract so that `studylink validate` covers all 121 files rather than carving 6 of them out; without it the slug regex in rule 5 rejects `books` for having no `/`.
+
+**Index labels are not frontmatter.** The link text an index shows for a note lives in the index's managed block, seeded from what the author already wrote. It is deliberately not a frontmatter field: adding one would make 99 notes the storage layer for text that belongs to the index, and migration would have to invent it. See [cli-contract.md](cli-contract.md).
 
 ## Status semantics
 
@@ -118,15 +132,36 @@ code_url: https://github.com/LuigiEspinosa/my-studies-code/tree/main/Books/ASP.N
 kind: index
 ---
 
-# ASP.NET Core 3 and React
+# ASP.NET Core 3 and React - Hands-On full stack web development using ASP.NET Core, React, and TypeScript 3 by Carl Rippon
 ```
 
 Note the folder-name mismatch between repos: the notes side spells it `ASP.Net Core 3 and React` and the code side `ASP.NET Core 3 and React`. The shared `slug` is what joins them, which is precisely why identity lives in the slug and not the path.
 
+The `# H1` is the full book title, and it is also the exact link text `Books/README.md` carries for this file. That is the one case in the corpus where the folder name and the index label diverge far enough to prove the label is stored rather than derived.
+
+## Worked example, platform note
+
+`my-studies/Books/README.md`
+
+```yaml
+---
+source: books
+status: done
+tags: []
+kind: platform
+---
+
+# Books
+```
+
+The vault-root `my-studies/README.md` is identical minus `source`.
+
 ## Validation rules
 
-1. All required fields present, correctly typed.
-2. `status` and `source` are members of their enums.
+All 11 apply to `kind: index` and `kind: note`. Rules 3 to 6 are skipped for `kind: platform`, which carries none of the fields they govern.
+
+1. All required fields present, correctly typed, per the Required column and the reduced `platform` set.
+2. `status` and `source` are members of their enums; `kind` is one of `platform`, `index`, `note`.
 3. `finished` present when and only when `status` is `done`; `finished` is not earlier than `started`.
 4. `started` present whenever `status` is not `backlog`.
 5. `slug` matches `^[a-z0-9]+(/[a-z0-9-]+){1,2}$` and is unique across the vault.
@@ -135,7 +170,7 @@ Note the folder-name mismatch between repos: the notes side spells it `ASP.Net C
 8. `code_url` present when `code` is non-empty.
 9. `tags` are lowercase kebab-case.
 10. `[[wikilinks]]` with no target are **reported as planned notes, never failures** (see Constraints in SPEC.md).
-11. `outline_total`, when present, is a positive integer on an `index` note.
+11. `outline_total`, when present, is a positive integer on a `kind: index` note.
 
 ### Warnings, which do not affect exit code
 

@@ -18,6 +18,7 @@ import { toAbsolutePosix, type RepoConfig } from '../config.ts';
 import {
     entryFor,
     parseFrontmatter,
+    splitLines,
     type Frontmatter,
     type FrontmatterValue,
 } from '../frontmatter.ts';
@@ -156,8 +157,9 @@ export function validateVault(options: ValidateOptions): ValidateResult {
 function load(note: NoteFile): LoadedNote {
     const text = readNote(note.absolutePath);
     const frontmatter = parseFrontmatter(text);
-    const body = text
-        .split(/\r?\n/)
+    // The same splitter the parser used, so the body's first line really is
+    // the line the parser said it was.
+    const body = splitLines(text)
         .slice(frontmatter.bodyStartLine - 1)
         .join('\n');
 
@@ -544,7 +546,11 @@ function checkOutlineTotal(entry: LoadedNote, out: Finding[]): void {
         );
         return;
     }
-    if (typeof field.value !== 'number' || !Number.isInteger(field.value) || field.value <= 0) {
+    if (typeof field.value !== 'number' || !Number.isInteger(field.value)) {
+        // Rule 1 owns types, so a non-integer has already been reported once.
+        return;
+    }
+    if (field.value <= 0) {
         out.push(
             finding(
                 entry,

@@ -56,7 +56,7 @@ Usage:
   studylink <command> [options]
 
 Commands:
-  validate               Check every note against the frontmatter contract
+  validate [--json]      Check every note against the frontmatter contract
   index [--write]        Regenerate the link list inside each managed block
   status [--stale <n>]   Report study state and flag stalled resources
   migrate [--write]      One-shot migration of the existing corpus

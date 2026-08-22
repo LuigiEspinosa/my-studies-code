@@ -55,7 +55,13 @@ const BLOCK_ITEM = /^\s*-\s*(.*)$/;
 const INTEGER = /^-?\d+$/;
 const FLOAT = /^-?\d+\.\d+$/;
 
-/** Split into lines the same way on either line-ending convention. */
+/**
+ * Split into lines the same way on either line-ending convention.
+ *
+ * A leading byte-order mark is dropped so that a note saved by an editor that
+ * writes one still opens with `---` on line 1. Dropping it changes no line
+ * count, so line provenance is unaffected.
+ */
 export function splitLines(text: string): string[] {
     return text.replace(/^﻿/, '').split(/\r?\n/);
 }

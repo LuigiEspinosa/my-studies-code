@@ -54,6 +54,7 @@ import { linkTarget, type FileChange } from './index.ts';
 export const SOURCE_BY_FOLDER: Readonly<Record<string, Source>> = {
     Books: 'books',
     'Midu.dev': 'midudev',
+    Platzi: 'platzi',
     'Santander Open Academy': 'santander',
     TryHackMe: 'tryhackme',
     'Veeva Learning': 'veeva',

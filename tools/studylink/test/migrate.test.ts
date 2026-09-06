@@ -193,6 +193,19 @@ describe('slugs', () => {
         assert.equal(slugFor('Midu.dev/Figma para Devs.md'), 'midudev/figma-para-devs');
     });
 
+    it('recognizes the Platzi folder and folds the accents out of its paths', () => {
+        assert.equal(
+            slugFor('Platzi/Escuela de Blockchain y Web3/README.md'),
+            'platzi/escuela-de-blockchain-y-web3'
+        );
+        assert.equal(
+            slugFor(
+                'Platzi/Escuela de Blockchain y Web3/Curso Básico de Computadores e Informática.md'
+            ),
+            'platzi/escuela-de-blockchain-y-web3/curso-basico-de-computadores-e-informatica'
+        );
+    });
+
     it('has no slug for a platform folder it does not recognize', () => {
         assert.equal(slugFor('Coursera/Something.md'), null);
     });

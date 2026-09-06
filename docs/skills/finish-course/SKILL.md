@@ -52,7 +52,16 @@ Parse the URL into a platform key and a course slug:
 
 `SOURCES` is a closed enum in `tools/studylink/src/schema.ts`: `books`, `midudev`, `santander`, `tryhackme`, `veeva`, `platzi`, `external`. A resource that fits none of these is `external`, which is the one case where `url` is **required**.
 
-Slug shape is `<source>/<course>[/<note>]`, lowercase kebab-case, accents folded to ASCII. Confirm the derived slug with the user before writing it: the slug is frozen identity, and the folder name is not.
+Slug shape is `<source>/<course>[/<note>]`, lowercase kebab-case, accents folded to ASCII, **at most three segments**. Confirm the slug with the user before writing it: the slug is frozen identity, and the folder name is not.
+
+**Where the slug comes from, in order of preference:**
+
+1. **The course URL slug**, when the platform gives the resource its own published address. `platzi.com/cursos/computacion-basica/` yields `platzi/computacion-basica`. Published URLs outlive folder reorganizations, so this is the more stable identity.
+2. **The folder path**, folded to a slug, for resources with no canonical URL: books, and most Veeva certifications.
+
+The path is not automatically the answer, and for deeply filed platforms it cannot be. Platzi nests a course under a school and a route, so its path runs four segments deep and `SLUG_PATTERN` caps a slug at three. `slugFor` in `migrate.ts` keeps going and returns an unusable four-segment string, which is why such a note takes its slug from the URL instead.
+
+When the authored slug differs from what the path would derive, `validate` raises **SLW4**, an advisory warning that never affects the exit code. Seeing SLW4 on a note you filed this way is correct and expected. Do not "fix" it by renaming folders or by forcing a path-shaped slug. Mention it to the user so the divergence is a choice they saw, not one that happened to them.
 
 ### 3. Handle a new platform
 
@@ -65,6 +74,10 @@ If this is the first resource for a platform that has no folder in the vault yet
 Any change under `tools/` means `npm test` and `npm run typecheck` must pass, and it needs its own test and its own commit.
 
 Do **not** add the new platform to the root `README.md` by hand. `studylink index --write` appends it.
+
+**Intermediate structural tiers get `kind: platform` too.** Platzi files a course under a school and then a route, so `Platzi/Escuela de Blockchain y Web3/README.md` and the route README beneath it are both `kind: platform`. That reads oddly against the field's name, but it matches the definition exactly: `platform` is structural navigation above the resource level, `index` is a resource, `note` is a unit of study. A school is not a course.
+
+A course filed this way is then a `kind: note` leaf standing for a whole resource, the same shape as the Midu.dev workshops. It carries the `url`; the structural tiers above it do not.
 
 ### 4. Place the files
 

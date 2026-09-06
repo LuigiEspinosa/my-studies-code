@@ -65,7 +65,8 @@ The timing is deliberate. The corpus was pruned from 172 notes across 10 platfor
 - Managed-block membership and link text are **seeded** from the authored indexes and never derived from folder contents or note titles. Indexes link notes owned by other resources (11 of 22 at migration time), and index labels are not reconstructible: Advent of Cyber Day 11 is labelled with a trailing `!` its `# H1` does not carry.
 - Ordering inside a seeded block is frozen at seed time. Sorting is ruled out because the Veeva blocks are in teaching order and an alphabetical pass would sort Advent of Cyber to Day 1, Day 10, Day 11, Day 2.
 - **Dates excluded from derivation are an explicit SHA list, never a file-count heuristic.** The two populations overlap in both directions: the largest mechanical commit touches 84 note files, more than either of the largest genuine study commits at 51 and 38. Any threshold rule discards real study dates. See [migration-plan.md](migration-plan.md).
-- Structural indexes above the resource level (the vault root and the platform READMEs) carry no `slug`. They are `kind: platform` with a reduced field set; see [frontmatter-schema.md](frontmatter-schema.md).
+- Structural navigation above the resource level carries no `slug`. Every such file is `kind: platform` with a reduced field set, at whatever depth it sits: the vault root, a platform README, and any tier a platform interposes between the two. See [frontmatter-schema.md](frontmatter-schema.md).
+- A `slug` is authored, never computed. It is the resource's published URL slug where one exists and the folded folder path otherwise, and it is capped at three segments, so a resource filed more deeply than that cannot take its slug from its path. Divergence between slug and path is legitimate and surfaced as an advisory warning, never an error.
 - `code:` is a list, never a scalar. One note can map to several sibling directories.
 - Unresolved `[[wikilinks]]` are intentional backlog markers for planned notes. Validation reports them as planned and never fails on them.
 - Cross-repo references are relative paths assuming sibling checkout under a common parent. Frontmatter additionally carries the canonical GitHub URL, because relative cross-repo links do not resolve on github.com.
@@ -93,8 +94,10 @@ From `c:\MyStudies`, `npx studylink validate` exits clean across both repositori
 
 This section records that the contract was met. It does not close the contract: every capability remains the standing rule for notes added from here, which is why the assertions above are relative rather than counted.
 
+**First use on new material, 2026-09-06.** A Platzi course was filed through the contract rather than migrated into it, which is the only real test of whether it generalizes beyond the corpus it was written against. It held, and it corrected three things it had got wrong by only ever having seen two-level platforms: slugs are authored rather than path-derived, `kind: platform` is a role rather than a depth, and a new platform costs an explicit line in the folder-to-source table. `validate` exits 0 with one expected advisory warning. See [verification.md](verification.md).
+
 ## Assumptions
 
-- Slug shape is `platform/course[/note]`, derived from existing folder names, since those already mirror the source course titles.
 - Both repos remain checked out as siblings under a single parent directory, which is what makes relative `code:` paths resolve.
-- The next study a course produces will be filed under the existing platform-first convention rather than a new scheme.
+
+Two earlier assumptions were falsified on 2026-09-06 and are now settled rules rather than assumptions. Slug shape was assumed to be derived from folder names, "since those already mirror the source course titles"; a platform that nests a course under a school and a route breaks the derivation outright, so slugs are authored. And the next course was assumed to arrive "under the existing platform-first convention rather than a new scheme"; it arrived three tiers deep instead. Both now live in **Constraints**.

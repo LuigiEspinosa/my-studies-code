@@ -4,19 +4,19 @@ The contract every note in `my-studies` carries. Enforced by `studylink validate
 
 ## Fields
 
-| Field           | Type              | Required                                                         | Notes                                                                                                                                                                                                                                                                         |
-| --------------- | ----------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `source`        | string enum       | yes, except the vault-root index                                 | Platform key. In use after the prune: `books`, `midudev`, `santander`, `tryhackme`, `veeva`. Reserved for the author's stated return to those platforms: `platzi`. Also valid: `external` for one-off resources. Adding a key is a one-line change; unused keys are harmless. |
-| `url`           | string            | yes when `source` is `external`, optional otherwise              | Canonical URL of the course, room, or book. Carried by notes that **are** a resource, never by a unit inside one: a day note has no canonical URL of its own. See **The url requirement** below and the url rule in [migration-plan.md](migration-plan.md).                   |
-| `slug`          | string            | yes, except `kind: platform`                                     | Stable cross-repo identifier. See **Slug convention**. Unique across the vault.                                                                                                                                                                                               |
-| `status`        | string enum       | yes                                                              | One of: `backlog`, `active`, `done`, `dropped`. Human-authored intent. `stalled` is deliberately **not** a value here; see **Status semantics**.                                                                                                                              |
-| `outline_total` | integer           | optional, `kind: index` only                                     | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing.                                                                                                                                        |
-| `started`       | date `YYYY-MM-DD` | required when `status` is not `backlog`, except `kind: platform` | First day of study. Migration derives it from the first commit touching the file.                                                                                                                                                                                             |
-| `finished`      | date `YYYY-MM-DD` | required when `status` is `done`, except `kind: platform`        | Migration derives it from the last commit touching the file. Must not precede `started`.                                                                                                                                                                                      |
-| `tags`          | list of strings   | yes, may be empty                                                | Topic axis, lowercase kebab-case. This is the retrieval layer that replaces folder reorganization.                                                                                                                                                                            |
-| `code`          | list of strings   | yes, may be empty                                                | Relative paths from the note to sibling-repo directories. See **Cross-repo references**.                                                                                                                                                                                      |
-| `code_url`      | string            | required when `code` is non-empty                                | Canonical `github.com/LuigiEspinosa/my-studies-code/tree/main/...` URL, because relative cross-repo links do not resolve on github.com.                                                                                                                                       |
-| `kind`          | string enum       | yes                                                              | `platform`, `index`, or `note`. See **Kinds**.                                                                                                                                                                                                                                |
+| Field           | Type              | Required                                                         | Notes                                                                                                                                                                                                                                                                                                           |
+| --------------- | ----------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`        | string enum       | yes, except the vault-root index                                 | Platform key. In use: `books`, `midudev`, `platzi`, `santander`, `tryhackme`, `veeva`. Also valid: `external` for one-off resources. Adding a key means one line in `SOURCES` and one in `SOURCE_BY_FOLDER`; a folder absent from the second is a gap rather than a guess, so migration returns no slug for it. |
+| `url`           | string            | yes when `source` is `external`, optional otherwise              | Canonical URL of the course, room, or book. Carried by notes that **are** a resource, never by a unit inside one: a day note has no canonical URL of its own. See **The url requirement** below and the url rule in [migration-plan.md](migration-plan.md).                                                     |
+| `slug`          | string            | yes, except `kind: platform`                                     | Stable cross-repo identifier. See **Slug convention**. Unique across the vault.                                                                                                                                                                                                                                 |
+| `status`        | string enum       | yes                                                              | One of: `backlog`, `active`, `done`, `dropped`. Human-authored intent. `stalled` is deliberately **not** a value here; see **Status semantics**.                                                                                                                                                                |
+| `outline_total` | integer           | optional, `kind: index` only                                     | How many units the source actually has (chapters, rooms, lessons). Enables the coverage check. Omit when unknown rather than guessing.                                                                                                                                                                          |
+| `started`       | date `YYYY-MM-DD` | required when `status` is not `backlog`, except `kind: platform` | First day of study. Migration derives it from the first commit touching the file.                                                                                                                                                                                                                               |
+| `finished`      | date `YYYY-MM-DD` | required when `status` is `done`, except `kind: platform`        | Migration derives it from the last commit touching the file. Must not precede `started`.                                                                                                                                                                                                                        |
+| `tags`          | list of strings   | yes, may be empty                                                | Topic axis, lowercase kebab-case. This is the retrieval layer that replaces folder reorganization.                                                                                                                                                                                                              |
+| `code`          | list of strings   | yes, may be empty                                                | Relative paths from the note to sibling-repo directories. See **Cross-repo references**.                                                                                                                                                                                                                        |
+| `code_url`      | string            | required when `code` is non-empty                                | Canonical `github.com/LuigiEspinosa/my-studies-code/tree/main/...` URL, because relative cross-repo links do not resolve on github.com.                                                                                                                                                                         |
+| `kind`          | string enum       | yes                                                              | `platform`, `index`, or `note`. See **Kinds**.                                                                                                                                                                                                                                                                  |
 
 Unknown keys are permitted and ignored, so Obsidian plugins can add their own without failing validation.
 
@@ -24,13 +24,17 @@ Unknown keys are permitted and ignored, so Obsidian plugins can add their own wi
 
 The vault has three tiers, and the middle one is the only tier that maps to a study resource.
 
-| `kind`     | Files                                                                     | What it is                                                                                                                                                                                                               |
-| ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `platform` | The vault root `README.md` and the platform READMEs (6 at migration time) | Structural navigation above the resource level. Not a study resource, so it carries no `slug`, `started`, or `finished`. The root additionally carries no `source`, because there is no path segment to derive one from. |
-| `index`    | The resource READMEs (16)                                                 | A course, room, book, or certification. Owns `outline_total` where an outline exists.                                                                                                                                    |
-| `note`     | The leaf notes (98)                                                       | A unit of study. The 5 Midu.dev workshops are resources represented by a leaf note rather than a folder, so `kind: note` does not imply "belongs to an index".                                                           |
+| `kind`     | Files                                                                                                        | What it is                                                                                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `platform` | The vault root `README.md`, every platform README, and **every structural tier between them and a resource** | Structural navigation above the resource level. Not a study resource, so it carries no `slug`, `started`, or `finished`. The root additionally carries no `source`, because there is no path segment to derive one from. |
+| `index`    | The resource READMEs                                                                                         | A course, room, book, or certification. Owns `outline_total` where an outline exists.                                                                                                                                    |
+| `note`     | The leaf notes                                                                                               | A unit of study. A leaf note may also stand for a whole resource rather than a unit inside one, so `kind: note` does not imply "belongs to an index".                                                                    |
 
 A `platform` file requires only `kind`, `status`, `tags`, and `source` where derivable. It exists in the contract so that `studylink validate` covers **every** file in the vault rather than carving the structural tier out; without it the slug regex in rule 5 rejects `books` for having no `/`.
+
+**`platform` is a role, not a depth.** It first described only the vault root and the five platform folders, which is how the migrated corpus happened to be shaped. Platzi files a course under a school and then a route, and both of those intermediate READMEs are `platform` too. That reads oddly against the field's name and is nonetheless exactly the definition: a school is not a course.
+
+The tier that owns a resource is `index` when the resource is a folder of notes, and `note` when the resource is a single file. Both the 5 Midu.dev workshops and the Platzi course take the second shape: a `kind: note` leaf carrying the `url`, with only `platform` tiers above it and no `index` anywhere in its path.
 
 **Index labels are not frontmatter.** The link text an index shows for a note lives in the index's managed block, seeded from what the author already wrote. It is deliberately not a frontmatter field: adding one would make 99 notes the storage layer for text that belongs to the index, and migration would have to invent it. See [cli-contract.md](cli-contract.md).
 
@@ -63,7 +67,7 @@ Where `outline_total` is absent, coverage is `unknown` and the tool reports it a
 
 ## Slug convention
 
-Shape: `<source>/<course>[/<note>]`, all lowercase kebab-case, accents folded to ASCII.
+Shape: `<source>/<course>[/<note>]`, all lowercase kebab-case, accents folded to ASCII, **at most three segments** (`SLUG_PATTERN`).
 
 ```
 books/asp-net-core-3-and-react
@@ -71,14 +75,31 @@ books/asp-net-core-3-and-react/chapter-6-managing-state-with-redux
 midudev/experiencias-3d-con-vue
 tryhackme/advent-of-cyber-2024/day-11
 veeva/engage-technical-certification-v5/engage-sign
+platzi/computacion-basica
 ```
 
 Rules:
 
-1. The slug is derived from the folder path at migration time, then frozen. Renaming a folder later does not change the slug; the slug is the identity, the path is not.
+1. **A slug is authored, not computed.** Its source of truth is, in order: the resource's published URL slug where the platform gives it one, otherwise the folder path folded to a slug. Once written it is frozen. Renaming a folder does not change it; the slug is the identity, the path is not.
 2. A course whose notes and code both exist uses the **same** `<source>/<course>` prefix in both repos. That prefix is the join key.
 3. Slugs are unique across the vault. `studylink validate` fails on a collision.
 4. Accent folding is one-way and lossy by design (`Introducción` becomes `introduccion`), which is why the human-readable title stays in the note's `# H1` and the folder name.
+
+### Why authored rather than path-derived
+
+Rule 1 originally read "derived from the folder path at migration time". Migration could hold that line because it only ever saw two-level platforms. The first course filed afterwards broke it.
+
+Platzi files a course under a school and then a route, so the real path is four segments deep:
+
+```
+Platzi/Escuela de Blockchain y Web3/Fundamentos de Blockchain y Web3/Curso Básico de Computadores e Informática.md
+```
+
+`slugFor` is purely mechanical and keeps going, returning a four-segment string that fails `SLUG_PATTERN`. Such a note **cannot** take its slug from its path at all. It takes `platzi/computacion-basica` from the course URL instead, which is also the better identity: published URLs outlive folder reorganizations, and platforms reorganize schools and routes.
+
+Books and most Veeva certifications have no canonical URL and keep taking the path. Both rules are live; neither is a fallback for the other's failure.
+
+Divergence between an authored slug and what its path would derive is legitimate, and `validate` surfaces it as advisory warning **SLW4** rather than forbidding it. Without that warning the divergence is invisible, and a typo looks exactly like a deliberate choice on the field that joins the two repos.
 
 ## Cross-repo references
 
@@ -187,6 +208,13 @@ All 11 apply to `kind: index` and `kind: note`. Rules 3 to 6 are skipped for `ki
 
 ### Warnings, which do not affect exit code
 
-- `status: done` with coverage below 100 percent. Advisory only; the human call wins.
-- `status: active` with no touch in `--stale` days. This is the stalled signal, surfaced by `studylink status`.
-- A code-repo directory with no note counterpart. Advisory, never an error. No such directory exists today, so no suppression list is needed.
+| Id     | Condition                                                                                                         |
+| ------ | ----------------------------------------------------------------------------------------------------------------- |
+| `SLW1` | `status: done` with coverage below 100 percent. Advisory only; the human call wins.                               |
+| `SLW2` | `status: active` with no touch in `--stale` days. This is the stalled signal, surfaced by `studylink status`.     |
+| `SLW3` | A code-repo directory with no note counterpart. No such directory exists today, so no suppression list is needed. |
+| `SLW4` | A slug that is not the one its path would derive. Skipped for `kind: platform`, which carries no slug.            |
+
+Every one of these is a judgement the tool is not entitled to make. They exist so a choice is visible, never so it is forbidden, which is why none of them touches the exit code.
+
+`SLW4` is the newest and the one most likely to be misread as a defect. A slug diverging from its path is normal for any resource whose slug came from a published URL, and unavoidable for one filed deeper than three segments. Seeing it on such a note is the warning working. The wrong response is renaming folders or forcing a path-shaped slug; the right one is confirming the slug is what was intended.

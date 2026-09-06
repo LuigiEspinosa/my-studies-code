@@ -31,7 +31,7 @@ Run by `studylink migrate`, deriving each field mechanically:
 | Field           | Derived from                                                                                                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `source`        | First path segment, mapped through a fixed table (`Midu.dev` to `midudev`, `Santander Open Academy` to `santander`, `Veeva Learning` to `veeva`, `TryHackMe` to `tryhackme`, `Books` to `books`). |
-| `slug`          | Remaining path segments, lowercased, accents folded to ASCII, non-alphanumerics collapsed to single hyphens, `.md` and `README` dropped.                                                          |
+| `slug`          | Remaining path segments, lowercased, accents folded to ASCII, non-alphanumerics collapsed to single hyphens, `.md` and `README` dropped. **Historical:** see below.                               |
 | `kind`          | `index` if the filename is `README.md`, else `note`.                                                                                                                                              |
 | `status`        | `done`, uniformly. See above.                                                                                                                                                                     |
 | `started`       | Date of the **first** commit touching the file.                                                                                                                                                   |
@@ -40,6 +40,14 @@ Run by `studylink migrate`, deriving each field mechanically:
 | `url`           | Lifted for **resource-level notes only**. See **The url rule** below.                                                                                                                             |
 | `code`          | Populated only where a directory of the same `<source>/<course>` shape exists in the sibling repo.                                                                                                |
 | `outline_total` | Omitted. No surviving resource carries an outline.                                                                                                                                                |
+
+### The slug rule is historical
+
+The `slug` row above records what `migrate` did, and `slugFor` still behaves that way. It is no longer how a slug is decided.
+
+Migration could derive every slug from a path because it only ever saw two-level platforms. The first course filed afterwards, on Platzi, sits four segments deep under a school and a route, and `SLUG_PATTERN` caps a slug at three, so the derived string is unusable. A slug is now **authored**, taking the resource's published URL slug where one exists and the folded path otherwise, and `validate` raises `SLW4` when the two diverge. See the slug convention in [frontmatter-schema.md](frontmatter-schema.md).
+
+Nothing about the migrated corpus changes: every slug it wrote came from a path that could produce one, and all of them remain frozen.
 
 ## The url rule
 

@@ -42,6 +42,14 @@ Flags:
 
 Planned notes (unresolved `[[wikilinks]]`) are counted and reported in the summary but **do not** affect the exit code.
 
+Neither do the four advisory warnings, printed under their own heading after the violations: `SLW1` coverage below 100 percent on a `done` resource, `SLW2` an active resource past the staleness threshold, `SLW3` a code directory with no note counterpart, `SLW4` a slug that is not what its path would derive. Their conditions and rationale live in [frontmatter-schema.md](frontmatter-schema.md); what matters here is that a clean run can legitimately print warnings and still exit 0:
+
+```
+Platzi/…/Curso Básico de Computadores e Informática.md:4 SLW4 slug is authored rather than path-derived (path nests deeper than a slug allows, yielding platzi/escuela-de-blockchain-y-web3/fundamentos-de-blockchain-y-web3/curso-basico-de-computadores-e-informatica)
+
+124 files checked, 0 violations, 1 warning, 0 planned notes
+```
+
 ### `studylink index [--write]`
 
 Regenerates the link list inside each index README's managed block, in both repos.
@@ -99,12 +107,12 @@ Must be idempotent. The seeding run necessarily produces a diff, since it insert
 
 Reports study state, reading `status` from frontmatter and last-touch dates from git. `--stale` defaults to 30 days. Exit is always 0; this is a report, not a gate.
 
-On the current corpus every resource is `done`, so the report is deliberately quiet:
+Every resource in the corpus is `done`, so the report is deliberately quiet. Measured 2026-09-06:
 
 ```
 active (0)
-done (21)   backlog (0)   dropped (0)
-coverage: unknown for 21 of 21 (no outlines recorded)
+done (22)   backlog (0)   dropped (0)
+coverage: unknown for 22 of 22 (no outlines recorded)
 planned notes (unresolved wikilinks): 0
 ```
 

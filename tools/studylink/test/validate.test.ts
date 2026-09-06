@@ -427,6 +427,87 @@ describe('matrix: the shapes validate has to get right', () => {
         assert.equal(find(result.warnings, 'SLW3')?.line, null);
     });
 
+    it('a slug matching its path raises no divergence warning', () => {
+        const vault = conformingVault();
+
+        const result = check(vault);
+
+        assert.deepEqual(result.violations, [], formatText(result, false));
+        assert.deepEqual(rules(result.warnings), []);
+    });
+
+    it('a slug that simply differs from its path warns, without failing', () => {
+        const vault = conformingVault();
+        writeNote(
+            vault,
+            'TryHackMe/Advent of Cyber 2024/Day 11.md',
+            note({ ...LEAF, slug: 'tryhackme/advent-of-cyber-2024/day-eleven' })
+        );
+
+        const result = check(vault);
+
+        assert.deepEqual(result.violations, [], formatText(result, false));
+        assert.deepEqual(rules(result.warnings), ['SLW4']);
+        assert.match(
+            find(result.warnings, 'SLW4')?.message ?? '',
+            /path yields tryhackme\/advent-of-cyber-2024\/day-11/
+        );
+    });
+
+    it('a note nested deeper than a slug allows warns, and names what the path yielded', () => {
+        // The real case: Platzi files a course under a school and a route, so the
+        // path is four segments deep and SLUG_PATTERN caps a slug at three. Such a
+        // note cannot take its slug from its path at all, so it is authored from
+        // the course URL instead. Legitimate, and worth seeing.
+        const vault = conformingVault();
+        writeNote(
+            vault,
+            'Platzi/README.md',
+            note({ source: 'platzi', status: 'done', tags: '[]', kind: 'platform' }, '# Platzi')
+        );
+        writeNote(
+            vault,
+            'Platzi/Escuela de Blockchain y Web3/README.md',
+            note({ source: 'platzi', status: 'done', tags: '[]', kind: 'platform' }, '# Escuela')
+        );
+        writeNote(
+            vault,
+            'Platzi/Escuela de Blockchain y Web3/Fundamentos de Blockchain y Web3/README.md',
+            note({ source: 'platzi', status: 'done', tags: '[]', kind: 'platform' }, '# Ruta')
+        );
+        writeNote(
+            vault,
+            'Platzi/Escuela de Blockchain y Web3/Fundamentos de Blockchain y Web3/Curso Básico de Computadores e Informática.md',
+            note(
+                {
+                    source: 'platzi',
+                    url: 'https://platzi.com/cursos/computacion-basica/',
+                    slug: 'platzi/computacion-basica',
+                    status: 'done',
+                    started: '2026-08-22',
+                    finished: '2026-09-06',
+                    tags: '[computer-basics]',
+                    code: '[]',
+                    kind: 'note',
+                },
+                '# Curso Basico'
+            )
+        );
+
+        const result = check(vault);
+
+        assert.deepEqual(result.violations, [], formatText(result, false));
+        assert.deepEqual(rules(result.warnings), ['SLW4']);
+        assert.match(
+            find(result.warnings, 'SLW4')?.message ?? '',
+            /nests deeper than a slug allows/
+        );
+        assert.match(
+            find(result.warnings, 'SLW4')?.message ?? '',
+            /platzi\/escuela-de-blockchain-y-web3\/fundamentos-de-blockchain-y-web3\/curso-basico-de-computadores-e-informatica/
+        );
+    });
+
     it('a claimed code directory raises no orphan warning', () => {
         const vault = conformingVault();
         makeCodeDir(vault, 'TryHackMe/Advent of Cyber 2024/day-11');

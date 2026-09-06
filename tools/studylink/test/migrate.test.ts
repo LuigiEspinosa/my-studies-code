@@ -36,6 +36,7 @@ import {
 import { applyChanges } from '../src/commands/index.ts';
 import { BULK_COMMITS, DEFAULT_STALE_DAYS, toPosix, type RepoConfig } from '../src/config.ts';
 import { type Commit } from '../src/git.ts';
+import { SLUG_PATTERN } from '../src/schema.ts';
 import {
     EXIT_FAILURE,
     EXIT_FINDINGS,
@@ -204,6 +205,23 @@ describe('slugs', () => {
             ),
             'platzi/escuela-de-blockchain-y-web3/curso-basico-de-computadores-e-informatica'
         );
+    });
+
+    it('yields an unusable slug once a path nests past three segments', () => {
+        // The shape Platzi actually files under, school then route then course.
+        // `slugFor` is purely mechanical and keeps going, so what it returns here
+        // is four segments and fails SLUG_PATTERN. Nothing is wrong with the
+        // function: it is the reason such a note authors its slug from the course
+        // URL instead, and the reason `validate` raises SLW4 when it does.
+        const derived = slugFor(
+            'Platzi/Escuela de Blockchain y Web3/Fundamentos de Blockchain y Web3/Curso Básico de Computadores e Informática.md'
+        );
+
+        assert.equal(
+            derived,
+            'platzi/escuela-de-blockchain-y-web3/fundamentos-de-blockchain-y-web3/curso-basico-de-computadores-e-informatica'
+        );
+        assert.equal(derived === null ? true : SLUG_PATTERN.test(derived), false);
     });
 
     it('has no slug for a platform folder it does not recognize', () => {

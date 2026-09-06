@@ -23,6 +23,7 @@ import {
     type FrontmatterValue,
 } from '../frontmatter.ts';
 import { daysSince } from '../git.ts';
+import { slugFor } from './migrate.ts';
 import {
     FIELDS,
     isKind,
@@ -71,6 +72,7 @@ export const WARNING_IDS = {
     coverage: 'SLW1',
     stale: 'SLW2',
     orphanCode: 'SLW3',
+    slugPath: 'SLW4',
 } as const;
 
 export type Finding = {
@@ -145,6 +147,7 @@ export function validateVault(options: ValidateOptions): ValidateResult {
         collectPlannedNotes(entry, notes, plannedNotes);
         warnCoverage(entry, notes, warnings);
         warnStale(entry, config, options, warnings);
+        warnSlugPathDivergence(entry, warnings);
     }
 
     checkSlugUniqueness(loaded, violations);
@@ -582,6 +585,41 @@ function collectPlannedNotes(
         }
         out.push({ file: entry.note.relativePath, line: link.line, target: link.target });
     }
+}
+
+/**
+ * SLW4: a slug that is not the one its path would derive. Advisory, never an error.
+ *
+ * Slugs are authored, not computed. A resource whose folders nest deeper than the
+ * three segments `SLUG_PATTERN` allows cannot take its slug from its path at all,
+ * and where a platform gives a course its own URL slug that is the more stable
+ * identity anyway: folders get reorganized, published URLs mostly do not.
+ *
+ * So divergence is legitimate and this never fails. It is surfaced because the
+ * slug is the cross-repo join key and nothing else on disk records where a given
+ * slug came from, which makes a typo and a deliberate choice look identical.
+ */
+function warnSlugPathDivergence(entry: LoadedNote, out: Finding[]): void {
+    if (entry.slug === null || entry.kind === 'platform') {
+        return;
+    }
+
+    const derived = slugFor(entry.note.relativePath);
+    if (derived === null || derived === entry.slug) {
+        return;
+    }
+
+    const reason = SLUG_PATTERN.test(derived)
+        ? `path yields ${derived}`
+        : `path nests deeper than a slug allows, yielding ${derived}`;
+    out.push(
+        finding(
+            entry,
+            entryFor(entry.frontmatter, 'slug')?.line ?? entry.frontmatter.openLine,
+            WARNING_IDS.slugPath,
+            `slug is authored rather than path-derived (${reason})`
+        )
+    );
 }
 
 /** SLW1: status done while coverage is below 100 percent. Advisory only. */

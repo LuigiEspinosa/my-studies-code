@@ -64,38 +64,53 @@ export type BulkCommit = {
  * The complete exclusion set for `my-studies`, as an explicit list.
  *
  * **Never replace this with a file-count threshold.** Real study commits touch
- * more files than most mechanical ones: `9be50a6` (CLM Business Certification
+ * more files than many mechanical ones: `9be50a6` (CLM Business Certification
  * v5) touches 51 note files and `b4add3c` (Advent of Cyber '24) touches 38,
- * against 6 to 84 here. Any threshold rule would silently discard real dates.
+ * while entries here run from 1 to 120. The two ranges overlap in both
+ * directions, so any threshold rule would silently discard real dates.
  *
- * The last four postdate the spec, so migration-plan.md still names only the 7
- * above them: story 1 introduced the Prettier and renormalize passes, and the
- * story 6 dry run caught the two at the foot of the table.
+ * `noteFiles` is not a criterion, only a record of what was read. Entries here
+ * touch between 1 and 120 files and all belong equally: what disqualifies a
+ * commit is that its date says nothing about when the note was studied.
  *
- * `noteFiles` is not a criterion, only a record of what was read. Two of these
- * touch a single file each and still belong: what disqualifies a commit is that
- * its date says nothing about when the note was studied.
+ * Every count was re-measured on 2026-09-06 and 8 of the first 11 were wrong,
+ * all undercounts. They had been collected without `core.quotepath=false`, so
+ * git escaped every path holding a non-ASCII character and a `\.md$` filter
+ * dropped it. `Introducción`, `Lo último`, `Detección`, `Básico` and
+ * `Formula 1®` all vanished from the tallies. `git.ts` sets that flag on its own
+ * log calls, so no derived date was ever affected; only this record was.
  */
 export const BULK_COMMITS: readonly BulkCommit[] = [
-    { sha: '2409228', subject: 'Apply the Prettier and markdownlint pass', noteFiles: 34 },
+    { sha: '2409228', subject: 'Apply the Prettier and markdownlint pass', noteFiles: 37 },
     { sha: 'a6e6893', subject: 'Renormalize line endings to LF', noteFiles: 19 },
-    { sha: '5e13fde', subject: 'Drop stalled and outdated course notes', noteFiles: 43 },
+    { sha: '5e13fde', subject: 'Drop stalled and outdated course notes', noteFiles: 54 },
     { sha: '3159172', subject: 'chore(migration): Veeva Learning Lint', noteFiles: 84 },
-    { sha: '6b92425', subject: 'chore(migration): Udemy Lint', noteFiles: 15 },
-    { sha: 'e6cbbeb', subject: 'chore(migration): TryHackMe Lint', noteFiles: 47 },
-    { sha: '3bc06ff', subject: 'chore(migration): Platzi Lint', noteFiles: 6 },
-    { sha: '1b3c2de', subject: 'chore(migration): Books Lint', noteFiles: 21 },
-    { sha: 'acfe6cc', subject: 'chore(migration): Midu.dev Lint', noteFiles: 7 },
+    { sha: '6b92425', subject: 'chore(migration): Udemy Lint', noteFiles: 17 },
+    { sha: 'e6cbbeb', subject: 'chore(migration): TryHackMe Lint', noteFiles: 48 },
+    { sha: '3bc06ff', subject: 'chore(migration): Platzi Lint', noteFiles: 16 },
+    { sha: '1b3c2de', subject: 'chore(migration): Books Lint', noteFiles: 22 },
+    { sha: 'acfe6cc', subject: 'chore(migration): Midu.dev Lint', noteFiles: 10 },
     // The seventh reformatting pass, missed when the other six were collected.
-    // It is the only commit on either Santander README and the last on all 6 of
+    // It is the only commit on either Santander README and the last on all of
     // its notes, so leaving it in dated the whole resource 2026-03-26 against a
     // real study commit of 2025-06-17.
-    { sha: '13661b9', subject: 'chore(migration): Santander Open Academy Lint', noteFiles: 2 },
+    { sha: '13661b9', subject: 'chore(migration): Santander Open Academy Lint', noteFiles: 10 },
     // Repair work on this contract rather than study: it corrected `salesfoce`
     // to `salesforce` in a link the superseded url-lifting rule would have
     // promoted into frontmatter. Left in, it stamped one Veeva note, and the
     // certification index above it, with the day the migration itself ran.
     { sha: '1235c34', subject: 'Fix misspelled Salesforce link', noteFiles: 1 },
+    // The migration's own two commits, the largest mechanical pair in the
+    // history. Harmless while `migrate` stays un-rerun, since the dates it
+    // derived are frozen in frontmatter, but re-running it with these absent
+    // would derive `finished: 2026-08-22` for the entire vault, which is
+    // precisely the flattening this list exists to prevent.
+    {
+        sha: 'd1ad5c9',
+        subject: 'Add frontmatter and managed index blocks to every note',
+        noteFiles: 120,
+    },
+    { sha: 'b69d6ce', subject: 'Add topic tags to every note', noteFiles: 114 },
 ];
 
 /**

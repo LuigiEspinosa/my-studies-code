@@ -144,7 +144,7 @@ kind: note
 [Beginner WiFi Hacking Tutorial (TryHackMe Advent of Cyber Day 11)](https://www.youtube.com/watch?v=svxqeFWqXQc)
 ```
 
-Transcribed from disk, and it demonstrates three rules at once. There is **no `url`**, even though the body's first line is a prominent link: that walkthrough video is not the canonical URL of the room, and the superseded lifting rule would have promoted it here on this note and 21 others like it. The dates are `2025-01-01` rather than the December day the content describes, because they are derived from git and survive the 11-SHA exclusion list intact. And the `# H1` differs from the label `TryHackMe/Advent of Cyber 2024/README.md` shows for this file, which ends in a `!` the H1 does not carry, which is why labels are seeded rather than derived.
+Transcribed from disk, and it demonstrates three rules at once. There is **no `url`**, even though the body's first line is a prominent link: that walkthrough video is not the canonical URL of the room, and the superseded lifting rule would have promoted it here on this note and 21 others like it. The dates are `2025-01-01` rather than the December day the content describes, because they are derived from git and survive the exclusion list intact. And the `# H1` differs from the label `TryHackMe/Advent of Cyber 2024/README.md` shows for this file, which ends in a `!` the H1 does not carry, which is why labels are seeded rather than derived.
 
 ## Worked example, index note
 

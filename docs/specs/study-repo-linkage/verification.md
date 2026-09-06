@@ -48,7 +48,7 @@ Four changes postdate story 6 and are part of the delivered state:
 
 - `1235c34`, `6b70653` and `99789a4`: a misspelled Salesforce link, a malformed nested link, and a prettier ignore for the Obsidian config.
 - `b69d6ce`: topic tags added to every non-platform note, closing the one step [migration-plan.md](migration-plan.md) had left as a post-merge pass.
-- `714f7de` in `my-studies-code`: the date-exclusion list corrected to its full 11 SHAs.
+- `714f7de` in `my-studies-code`: the date-exclusion list corrected to 11 SHAs, later taken to 13 on 2026-09-06.
 - `6cf5fc4` and `c5336ba`: the url rule narrowed to resource-level notes, and reverse links written into the mapped code directories.
 
 ## Verification checklist, as executed

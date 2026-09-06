@@ -61,36 +61,49 @@ One named exception sits alongside it in `tools/studylink/src/config.ts`: `NON_C
 
 ## Dates excluded from derivation
 
-Some commits say nothing about when a note was studied, and leaving them in flattens `finished` across a whole platform onto the day a reformatting pass ran. The exclusion set is **an explicit list of 11 SHAs**, carried in `tools/studylink/src/config.ts` as `BULK_COMMITS` and correct as of `my-studies-code` commit `714f7de`:
+Some commits say nothing about when a note was studied, and leaving them in flattens `finished` across a whole platform onto the day a reformatting pass ran. The exclusion set is **an explicit list of 13 SHAs**, carried in `tools/studylink/src/config.ts` as `BULK_COMMITS`. Counts re-measured 2026-09-06:
 
-| SHA       | Subject                                       | Note files |
-| --------- | --------------------------------------------- | ---------- |
-| `2409228` | Apply the Prettier and markdownlint pass      | 34         |
-| `a6e6893` | Renormalize line endings to LF                | 19         |
-| `5e13fde` | Drop stalled and outdated course notes        | 43         |
-| `3159172` | chore(migration): Veeva Learning Lint         | 84         |
-| `6b92425` | chore(migration): Udemy Lint                  | 15         |
-| `e6cbbeb` | chore(migration): TryHackMe Lint              | 47         |
-| `3bc06ff` | chore(migration): Platzi Lint                 | 6          |
-| `1b3c2de` | chore(migration): Books Lint                  | 21         |
-| `acfe6cc` | chore(migration): Midu.dev Lint               | 7          |
-| `13661b9` | chore(migration): Santander Open Academy Lint | 2          |
-| `1235c34` | Fix misspelled Salesforce link                | 1          |
+| SHA       | Subject                                                | Note files |
+| --------- | ------------------------------------------------------ | ---------- |
+| `2409228` | Apply the Prettier and markdownlint pass               | 37         |
+| `a6e6893` | Renormalize line endings to LF                         | 19         |
+| `5e13fde` | Drop stalled and outdated course notes                 | 54         |
+| `3159172` | chore(migration): Veeva Learning Lint                  | 84         |
+| `6b92425` | chore(migration): Udemy Lint                           | 17         |
+| `e6cbbeb` | chore(migration): TryHackMe Lint                       | 48         |
+| `3bc06ff` | chore(migration): Platzi Lint                          | 16         |
+| `1b3c2de` | chore(migration): Books Lint                           | 22         |
+| `acfe6cc` | chore(migration): Midu.dev Lint                        | 10         |
+| `13661b9` | chore(migration): Santander Open Academy Lint          | 10         |
+| `1235c34` | Fix misspelled Salesforce link                         | 1          |
+| `d1ad5c9` | Add frontmatter and managed index blocks to every note | 120        |
+| `b69d6ce` | Add topic tags to every note                           | 114        |
 
-This supersedes two earlier descriptions of the same thing, and the history matters because each correction was found the same way. The plan originally named **two classes** ("the March 2026 Lint commits" and "the prune commits"), which is not enumerable and missed anything outside the pattern. Enumerating produced **9**. Story 6 then caught two more: `13661b9`, the seventh reformatting pass, missed because a threshold of "more than 5 note files" was quietly in play and it touches 2, though it is the only commit on either Santander README and would have dated the whole resource `2026-03-26` against a real study date of `2025-06-17`; and `1235c34`, which is repair work on this contract rather than study and stamped one Veeva note plus its certification index with the day the migration ran.
+The list grew four times, and how each addition was found matters more than the additions. It began as **two classes** ("the March 2026 Lint commits" and "the prune commits"), which is not enumerable and misses anything outside the pattern. Enumerating produced **9**. Story 6 caught `13661b9` and `1235c34`, taking it to 11. The last two are the migration's own commits, added 2026-09-06.
 
-`noteFiles` above is a record of what was read, **not a criterion**. Two entries touch a single file each and still belong. What disqualifies a commit is that its date says nothing about when the note was studied.
+`d1ad5c9` and `b69d6ce` are the largest mechanical pair in the history and were absent the whole time. Harmless while `migrate` stays un-rerun, since the dates it derived are frozen in frontmatter, but re-running it without them would have derived `finished: 2026-08-22` for the entire vault. The command that exists to prevent flattening would have flattened everything.
 
-**Never replace this list with a file-count threshold.** The two populations overlap in both directions: `3159172` is mechanical and touches 84 note files, more than the largest genuine study commits, `9be50a6` (CLM Business Certification v5) at 51 and `b4add3c` (Advent of Cyber '24) at 38. The mechanical range is 6 to 84 and the study range runs straight through it. Any threshold discards real dates.
+`noteFiles` is a record of what was read, **not a criterion**. Entries run from 1 file to 120 and all belong equally. What disqualifies a commit is that its date says nothing about when the note was studied.
+
+### The counts were wrong for a fortnight
+
+8 of the first 11 counts were undercounts, corrected above. They had been collected without `core.quotepath=false`, so git escaped every path containing a non-ASCII character and a `\.md$` filter silently dropped it. `Introducción`, `Lo último`, `Detección`, `Básico` and `Formula 1®` all disappeared from the tallies.
+
+No derived date was ever affected: `git.ts` sets that flag on its own log calls and its comment marks it load-bearing. Only this record was wrong.
+
+One consequence is worth correcting explicitly, because it was used as reasoning. This plan previously explained `13661b9` as "missed because a threshold of more than 5 note files was quietly in play and it touches 2". It touches 10, so no such threshold would have missed it. The real cause was the quoting bug, and the same bug produced the wrong explanation.
+
+**Never replace this list with a file-count threshold.** The populations overlap in both directions: `3159172` is mechanical and touches 84 note files, more than the largest genuine study commits, `9be50a6` (CLM Business Certification v5) at 51 and `b4add3c` (Advent of Cyber '24) at 38. Mechanical entries run 1 to 120 and the study range sits inside that. Any threshold discards real dates.
 
 The code-side prune commit `0797c5d` never enters note date derivation and so is not in the list.
 
-### Two open items
+### One open item
 
-Both are recorded rather than resolved, because resolving either changes dates that are now frozen in frontmatter.
+Recorded rather than resolved, because resolving it changes dates that are now frozen in frontmatter.
 
 - **`05455e8` "fix: Hotfixes" (2025-04-21) is kept as a genuine study commit, unconfirmed.** It is load-bearing: it supplies `finished: 2025-04-21` to `Survey Basics` and `Surveys in CLM`, among the 7 Veeva notes it touches. Its shape argues both ways, at 1,089 deletions against 6 insertions across one certification, which reads more like trimming duplicated content than studying. Reclassifying it means re-deriving dates for those 7 notes, not just editing a list.
-- **The migration's own commits are not excluded.** `d1ad5c9` (frontmatter and managed blocks, 120 note files) and `b69d6ce` (topic tags, 114 note files) are the two largest mechanical commits in the repo's history, and neither is in `BULK_COMMITS`. This is harmless as things stand, because `migrate` is a one-shot that has already run and the dates it derived are frozen in the notes. But re-running `migrate --write` today would derive `finished: 2026-08-22` for every note in the vault, which is exactly the flattening this list exists to prevent. Add both before any re-run.
+
+The second open item, the migration's own commits missing from `BULK_COMMITS`, was resolved on 2026-09-06 by adding `d1ad5c9` and `b69d6ce` to the table above.
 
 ### When derivation reaches nothing
 

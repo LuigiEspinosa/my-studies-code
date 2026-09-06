@@ -100,6 +100,13 @@ export const BULK_COMMITS: readonly BulkCommit[] = [
     // promoted into frontmatter. Left in, it stamped one Veeva note, and the
     // certification index above it, with the day the migration itself ran.
     { sha: '1235c34', subject: 'Fix misspelled Salesforce link', noteFiles: 1 },
+    // Reclassified from study to mechanical on 2026-09-06, after sitting in the
+    // contract as an open question since the exclusion list was first
+    // enumerated. Its shape settles it: 1,089 deletions against 6 insertions
+    // across one certification is trimming duplicated content, not studying.
+    // It supplied `finished: 2025-04-21` to all 7 notes it touches, and those
+    // dates were re-derived when it moved here.
+    { sha: '05455e8', subject: 'fix: Hotfixes', noteFiles: 7 },
     // The migration's own two commits, the largest mechanical pair in the
     // history. Harmless while `migrate` stays un-rerun, since the dates it
     // derived are frozen in frontmatter, but re-running it with these absent

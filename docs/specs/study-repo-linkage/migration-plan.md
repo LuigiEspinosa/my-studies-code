@@ -61,7 +61,7 @@ One named exception sits alongside it in `tools/studylink/src/config.ts`: `NON_C
 
 ## Dates excluded from derivation
 
-Some commits say nothing about when a note was studied, and leaving them in flattens `finished` across a whole platform onto the day a reformatting pass ran. The exclusion set is **an explicit list of 13 SHAs**, carried in `tools/studylink/src/config.ts` as `BULK_COMMITS`. Counts re-measured 2026-09-06:
+Some commits say nothing about when a note was studied, and leaving them in flattens `finished` across a whole platform onto the day a reformatting pass ran. The exclusion set is **an explicit list of 14 SHAs**, carried in `tools/studylink/src/config.ts` as `BULK_COMMITS`. Counts re-measured 2026-09-06:
 
 | SHA       | Subject                                                | Note files |
 | --------- | ------------------------------------------------------ | ---------- |
@@ -76,10 +76,11 @@ Some commits say nothing about when a note was studied, and leaving them in flat
 | `acfe6cc` | chore(migration): Midu.dev Lint                        | 10         |
 | `13661b9` | chore(migration): Santander Open Academy Lint          | 10         |
 | `1235c34` | Fix misspelled Salesforce link                         | 1          |
+| `05455e8` | fix: Hotfixes                                          | 7          |
 | `d1ad5c9` | Add frontmatter and managed index blocks to every note | 120        |
 | `b69d6ce` | Add topic tags to every note                           | 114        |
 
-The list grew four times, and how each addition was found matters more than the additions. It began as **two classes** ("the March 2026 Lint commits" and "the prune commits"), which is not enumerable and misses anything outside the pattern. Enumerating produced **9**. Story 6 caught `13661b9` and `1235c34`, taking it to 11. The last two are the migration's own commits, added 2026-09-06.
+The list grew five times, and how each addition was found matters more than the additions. It began as **two classes** ("the March 2026 Lint commits" and "the prune commits"), which is not enumerable and misses anything outside the pattern. Enumerating produced **9**. Story 6 caught `13661b9` and `1235c34`, taking it to 11. On 2026-09-06 the migration's own two commits were added, then `05455e8` was reclassified from study to mechanical, taking it to 14.
 
 `d1ad5c9` and `b69d6ce` are the largest mechanical pair in the history and were absent the whole time. Harmless while `migrate` stays un-rerun, since the dates it derived are frozen in frontmatter, but re-running it without them would have derived `finished: 2026-08-22` for the entire vault. The command that exists to prevent flattening would have flattened everything.
 
@@ -97,13 +98,29 @@ One consequence is worth correcting explicitly, because it was used as reasoning
 
 The code-side prune commit `0797c5d` never enters note date derivation and so is not in the list.
 
-### One open item
+### Both open items are closed
 
-Recorded rather than resolved, because resolving it changes dates that are now frozen in frontmatter.
+Both were resolved on 2026-09-06.
 
-- **`05455e8` "fix: Hotfixes" (2025-04-21) is kept as a genuine study commit, unconfirmed.** It is load-bearing: it supplies `finished: 2025-04-21` to `Survey Basics` and `Surveys in CLM`, among the 7 Veeva notes it touches. Its shape argues both ways, at 1,089 deletions against 6 insertions across one certification, which reads more like trimming duplicated content than studying. Reclassifying it means re-deriving dates for those 7 notes, not just editing a list.
+**The migration's own commits** were absent from `BULK_COMMITS` throughout. `d1ad5c9` and `b69d6ce` are now in the table.
 
-The second open item, the migration's own commits missing from `BULK_COMMITS`, was resolved on 2026-09-06 by adding `d1ad5c9` and `b69d6ce` to the table above.
+**`05455e8` "fix: Hotfixes" was reclassified from study to mechanical.** Its shape settles it: 1,089 deletions against 6 insertions across a single certification is trimming duplicated content, not studying. It had supplied `finished: 2025-04-21` to all 7 notes it touches, which is why the question could not be answered by editing a list.
+
+Those 7 dates were re-derived and rewritten, the only case in this contract where frozen frontmatter was deliberately changed after the fact:
+
+| Note                                                                                     | `finished` was | now        |
+| ---------------------------------------------------------------------------------------- | -------------- | ---------- |
+| `Approved Email Technical Certification v4/Launch Approved Email from CLM`               | 2025-04-21     | 2025-04-06 |
+| `CLM Business Certification v5/Packaging and Administration of Presentations and Slides` | 2025-04-21     | 2025-03-03 |
+| `CLM Business Certification v5/Presentation and Slides Content Management`               | 2025-04-21     | 2025-03-03 |
+| `CLM Business Certification v5/Survey Basics`                                            | 2025-04-21     | 2025-03-03 |
+| `CLM Business Certification v5/Surveys in CLM`                                           | 2025-04-21     | 2025-03-03 |
+| `CLM Business Certification v5/Veeva CLM Presentation Advanced Features`                 | 2025-04-21     | 2025-03-03 |
+| `Engage Technical Certification v5/Share - Remote CLM`                                   | 2025-04-21     | 2025-03-14 |
+
+No `started` date moved: `05455e8` was the newest commit on all 7 and never the oldest. The diff was 7 lines, one per file.
+
+One trap is worth recording, because the obvious implementation hits it. `git log` does not return commits in date order. For `Share - Remote CLM` it lists `ad1b4cc` (2025-03-14) before `007c285` (2025-03-03), so taking the first and last log entries yields `finished` **earlier** than `started`, which rule 3 rejects. Dates are the minimum and maximum of the surviving commit dates, never the ends of the log.
 
 ### When derivation reaches nothing
 

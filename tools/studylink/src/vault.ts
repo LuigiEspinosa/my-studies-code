@@ -18,8 +18,12 @@ import { toFsPath } from './config.ts';
  * carries no frontmatter and never will. Without this the vault measures one
  * markdown file more than it holds notes, and `migrate` would write a block
  * into the instructions themselves.
+ *
+ * `CLAUDE.md` is the same file under a second name. The instruction-file layout
+ * pairs every `AGENTS.md` with a `CLAUDE.md` holding `@AGENTS.md` and nothing
+ * else, so excluding only the first leaves the second failing SL01 forever.
  */
-export const NOTE_EXCLUSIONS: readonly string[] = ['AGENTS.md'];
+export const NOTE_EXCLUSIONS: readonly string[] = ['AGENTS.md', 'CLAUDE.md'];
 
 /** Never descended into, in either repo. */
 export const SKIPPED_DIRS: readonly string[] = ['node_modules'];

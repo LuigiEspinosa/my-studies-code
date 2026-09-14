@@ -60,12 +60,26 @@ function tree(files: Record<string, string>, dirs: readonly string[] = []): stri
 
 describe('listNotes', () => {
     it('excludes AGENTS.md, which is instructions rather than a unit of study', () => {
-        assert.deepEqual(NOTE_EXCLUSIONS, ['AGENTS.md']);
+        assert.deepEqual(NOTE_EXCLUSIONS, ['AGENTS.md', 'CLAUDE.md']);
 
         const root = tree({
             'AGENTS.md': '# agents\n',
             'README.md': '# root\n',
             'Books/AGENTS.md': '# nested agents\n',
+            'Books/README.md': '# books\n',
+        });
+
+        assert.deepEqual(
+            listNotes(root).map((note) => note.relativePath),
+            ['Books/README.md', 'README.md']
+        );
+    });
+
+    it('excludes CLAUDE.md, which is the same instructions under a second name', () => {
+        const root = tree({
+            'CLAUDE.md': '@AGENTS.md\n',
+            'README.md': '# root\n',
+            'Books/CLAUDE.md': '@AGENTS.md\n',
             'Books/README.md': '# books\n',
         });
 
